@@ -5,7 +5,7 @@
 const CONFIG = Object.freeze({
   // Supabase
    SUPABASE_URL: 'https://slsoylcapezzkakgqvmj.supabase.co' ,
-   SUPABASE_ANON_KEY: 'sb_publishable_bfWXE5bTRjpDQgIjXFOJsA_tsxB_LdS',
+   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsc295bGNhcGV6emtha2dxdm1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjY2NDUsImV4cCI6MjA4ODMwMjY0NX0.A3Y4vUS7M68KA_3XWkGABdxdjPCISd9mmONA4tDUr-Q',
 
   // Cloudflare Turnstile
   TURNSTILE_SITE_KEY: '0x4AAAAAACnRHKhJuwb2-HTX',
