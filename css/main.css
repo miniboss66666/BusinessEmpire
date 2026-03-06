@@ -1,0 +1,189 @@
+/* ============================================
+   MAIN.CSS - Reset, biến màu, layout chung
+   ============================================ */
+
+/* ===== CSS VARIABLES ===== */
+[data-theme="dark"] {
+  --bg: #080b12;
+  --bg2: #0f1420;
+  --bg3: #141a28;
+  --border: #1c2535;
+  --border2: #243040;
+  --text: #c0d0e0;
+  --text-dim: #4a6080;
+  --text-bright: #ffffff;
+  --gold: #f5c518;
+  --gold-dark: #c9a000;
+  --accent: #00d4ff;
+  --accent2: #0099cc;
+  --green: #00ff88;
+  --green-dark: #00cc66;
+  --red: #ff4455;
+  --red-dark: #cc2233;
+  --purple: #a855f7;
+  --orange: #ff6b35;
+  --card-bg: #0f1420;
+  --card-border: #1c2535;
+  --modal-bg: #0f1420ee;
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+[data-theme="light"] {
+  --bg: #f0f4f8;
+  --bg2: #ffffff;
+  --bg3: #e8edf3;
+  --border: #d0dae6;
+  --border2: #b8c8d8;
+  --text: #2a3a4a;
+  --text-dim: #8a9ab0;
+  --text-bright: #000000;
+  --gold: #d4a000;
+  --gold-dark: #a07800;
+  --accent: #0088bb;
+  --accent2: #006699;
+  --green: #00aa55;
+  --green-dark: #008844;
+  --red: #dd2233;
+  --red-dark: #aa1122;
+  --purple: #7c3aed;
+  --orange: #dd5500;
+  --card-bg: #ffffff;
+  --card-border: #d0dae6;
+  --modal-bg: #ffffffee;
+  --shadow: 0 4px 24px rgba(0,0,0,0.15);
+}
+
+/* ===== RESET ===== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* SPA: scroll xảy ra bên trong page-container */
+}
+
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ===== GAME LAYOUT ===== */
+.game-screen {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+/* Desktop: nav dọc trái + content chiếm phần còn lại */
+@media (min-width: 768px) {
+  .game-screen {
+    flex-direction: row;
+  }
+
+  #page-container {
+    flex: 1;
+    height: 100vh;
+    overflow-y: auto; /* ← scroll nội dung page tại đây */
+  }
+}
+
+/* Mobile: nav ngang dưới + content phía trên */
+@media (max-width: 767px) {
+  .game-screen {
+    flex-direction: column;
+  }
+
+  #page-container {
+    flex: 1;
+    overflow-y: auto; /* ← scroll nội dung page tại đây */
+    /* Chừa chỗ cho nav bottom 60px */
+    padding-bottom: 0;
+  }
+}
+
+/* ===== PAGE ===== */
+.page {
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+/* ===== TYPOGRAPHY ===== */
+.font-orbitron { font-family: 'Orbitron', monospace; }
+h1, h2, h3 { color: var(--text-bright); font-weight: 700; }
+
+/* ===== UTILITY ===== */
+.hidden { display: none !important; }
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.w-full { width: 100%; }
+.text-center { text-align: center; }
+.text-gold { color: var(--gold); }
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.text-dim { color: var(--text-dim); }
+.text-accent { color: var(--accent); }
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(245,197,24,0.3);
+}
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-box {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+}
