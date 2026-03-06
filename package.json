@@ -1,0 +1,10 @@
+{
+  "name": "BussinessEmpire",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "serve client -p 5000"
+  },
+  "dependencies": {
+    "serve": "^14.0.0"
+  }
+}
