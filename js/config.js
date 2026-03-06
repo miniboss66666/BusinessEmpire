@@ -4,7 +4,7 @@
 
 const CONFIG = Object.freeze({
   // Supabase
-   SUPABASE_URL: 'https://slsoylcapezzkakgqvmj.supabase.co'
+   SUPABASE_URL: 'https://slsoylcapezzkakgqvmj.supabase.co',
    SUPABASE_ANON_KEY: 'sb_publishable_bfWXE5bTRjpDQgIjXFOJsA_tsxB_LdS',
 
   // Cloudflare Turnstile
