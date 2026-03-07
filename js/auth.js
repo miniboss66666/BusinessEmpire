@@ -264,9 +264,12 @@ const Auth = (() => {
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
 
-    // Init pages
-    if (typeof Nav !== 'undefined') Nav.init();
-    if (typeof HomePage !== 'undefined') HomePage.init();
+    // Đợi 1 frame để browser tính toán layout xong rồi mới init
+    // (tránh height=0 khi render lần đầu)
+    requestAnimationFrame(() => {
+      if (typeof Nav !== 'undefined') Nav.init();
+      // KHÔNG gọi HomePage.init() ở đây — Nav.init() đã gọi HomePage.render() rồi
+    });
   }
 
   // ============================================
