@@ -164,6 +164,11 @@ const Save = (() => {
     return true;
   }
 
+  // saveNow — alias public để gọi thủ công từ UI
+  async function saveNow() {
+    return await saveToCloud();
+  }
+
   return {
     saveToCloud,
     loadFromCloud,
@@ -172,6 +177,7 @@ const Save = (() => {
     resetSave,
     serialize,
     deserialize,
+    saveNow,
   };
 
 })();

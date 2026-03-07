@@ -281,67 +281,97 @@ const CasinoFootball = (() => {
 
   // ═══════════════════════════════════════════
   // POSSESSION — chọn receiver tiếp theo
+  // Nguyên tắc: chọn cầu thủ GẦN BÓNG NHẤT trong đội đang có possession
   // ═══════════════════════════════════════════
   function scheduleNextPass() {
     if (!S.matches[S.selected]) return;
+    if (S.receiver !== -1) return; // đã có receiver rồi, không override
     const m = S.matches[S.selected];
     const possTeam = S.possession;
-
-    // Rating ảnh hưởng thời gian giữ bóng
     const rating = possTeam === 'home' ? m.hRating : m.aRating;
+    const isHome = possTeam === 'home';
+    const b = S.ball;
 
-    // Tìm các cầu thủ đội đang có bóng (trừ GK khi đang tấn công)
+    // Lấy tất cả cầu thủ đội đang có bóng (trừ GK)
     const candidates = S.players
-      .map((p, i) => ({ p, i }))
+      .map((p, i) => ({ p, i, dist: Math.hypot(p.x - b.x, p.y - b.y) }))
       .filter(({ p }) => p.team === possTeam && p.role !== 'gk');
 
     if (!candidates.length) return;
 
-    // Ưu tiên truyền về phía trước (fwd > mid > def)
-    const rolePriority = { fwd: 3, mid: 2, def: 1 };
-    // Thêm random để không bị đoán trước
-    const weighted = candidates.map(c => ({
-      ...c,
-      weight: rolePriority[c.p.role] * (0.5 + Math.random()),
-    }));
-    weighted.sort((a, b) => b.weight - a.weight);
+    // Sắp xếp theo khoảng cách bóng — gần nhất lên đầu
+    candidates.sort((a, b) => a.dist - b.dist);
 
-    // Chọn trong top 4
-    const topN = weighted.slice(0, Math.min(4, weighted.length));
-    const chosen = topN[Math.floor(Math.random() * topN.length)];
+    // Chọn trong 3 người gần nhất (random nhẹ để không quá predict)
+    const topN = candidates.slice(0, Math.min(3, candidates.length));
+    // Weight: gần hơn = ưu tiên hơn, role fwd ưu tiên nếu đang gần khung thành đối
+    const goalX = isHome ? W : 0;
+    const weighted = topN.map(c => {
+      const distToGoal = Math.abs(c.p.x - goalX);
+      const roleBonus = c.p.role === 'fwd' ? 1.5 : c.p.role === 'mid' ? 1.1 : 0.9;
+      // Gần bóng = điểm cao, gần gôn = điểm cao nếu là fwd
+      return { ...c, w: (1 / (c.dist + 1)) * roleBonus + (c.p.role === 'fwd' ? 30 / (distToGoal + 1) : 0) };
+    });
+    weighted.sort((a, b) => b.w - a.w);
+    const chosen = weighted[0]; // Lấy người điểm cao nhất
 
     S.receiver = chosen.i;
     const p = chosen.p;
 
-    // Điểm đến sau khi nhận — về phía khung thành đối phương
-    const isHome = possTeam === 'home';
-    const goalX = isHome ? W - 15 : 15;
+    // Target sau khi nhận bóng
+    const shootGoalX = isHome ? W - 8 : 8; // vị trí TRONG gôn
+    const shootGoalY = H / 2 + (Math.random() - 0.5) * 28; // trong xà ngang
 
-    // Fwd → shoot hoặc cross, Mid → pass tiếp, Def → build up
     let nextTargetX, nextTargetY;
-    if (p.role === 'fwd' && Math.random() < 0.5 + rating / 200) {
-      // Sút thẳng vào gôn!
-      nextTargetX = goalX;
-      nextTargetY = H / 2 + (Math.random() - 0.5) * 40;
+    const distToGoal = isHome ? (W - p.x) : p.x;
+
+    if (p.role === 'fwd' && distToGoal < W * 0.35) {
+      // Fwd gần gôn → sút thẳng vào trong khung thành
+      nextTargetX = shootGoalX;
+      nextTargetY = shootGoalY;
+    } else if (p.role === 'fwd') {
+      // Fwd xa → tiến về phía gôn
+      nextTargetX = isHome ? Math.min(W-10, p.x + 50 + Math.random()*30) : Math.max(10, p.x - 50 - Math.random()*30);
+      nextTargetY = H/2 + (Math.random()-0.5)*40;
+    } else if (p.role === 'mid') {
+      // Mid → truyền về phía fwd hoặc tiến lên
+      const fwds = S.players.filter(fp => fp.team === possTeam && fp.role === 'fwd');
+      if (fwds.length && Math.random() < 0.6) {
+        const target = fwds[Math.floor(Math.random()*fwds.length)];
+        nextTargetX = target.x + (Math.random()-0.5)*20;
+        nextTargetY = target.y + (Math.random()-0.5)*15;
+      } else {
+        nextTargetX = isHome ? Math.min(W-10, p.x+35+Math.random()*30) : Math.max(10, p.x-35-Math.random()*30);
+        nextTargetY = p.y + (Math.random()-0.5)*50;
+      }
     } else {
-      // Truyền tiếp về phía trước
-      nextTargetX = isHome
-        ? Math.min(W - 10, p.x + 30 + Math.random() * 40)
-        : Math.max(10, p.x - 30 - Math.random() * 40);
-      nextTargetY = p.y + (Math.random() - 0.5) * 60;
-      nextTargetY = Math.max(10, Math.min(H - 10, nextTargetY));
+      // Def → build up, truyền cho mid gần nhất
+      const mids = S.players
+        .filter(fp => fp.team === possTeam && fp.role === 'mid')
+        .sort((a,z) => Math.hypot(a.x-b.x,a.y-b.y) - Math.hypot(z.x-b.x,z.y-b.y));
+      if (mids.length) {
+        nextTargetX = mids[0].x + (Math.random()-0.5)*20;
+        nextTargetY = mids[0].y + (Math.random()-0.5)*15;
+      } else {
+        nextTargetX = isHome ? p.x+40 : p.x-40;
+        nextTargetY = p.y + (Math.random()-0.5)*30;
+      }
     }
+
+    nextTargetX = Math.max(8, Math.min(W-8, nextTargetX));
+    nextTargetY = Math.max(8, Math.min(H-8, nextTargetY));
     S.receiverTarget = { x: nextTargetX, y: nextTargetY };
 
-    // Thỉnh thoảng đội yếu bị mất bóng
-    const loseChance = 0.08 + (100 - rating) / 500;
+    // Thỉnh thoảng đội yếu mất bóng
+    const loseChance = 0.06 + (100 - rating) / 600;
     if (Math.random() < loseChance) {
-      // Đổi possession
+      const delay = 600 + Math.random() * 1000;
       setTimeout(() => {
         if (S.phase !== 'playing') return;
         S.possession = S.possession === 'home' ? 'away' : 'home';
+        S.receiver = -1;
         scheduleNextPass();
-      }, 800 + Math.random() * 1200);
+      }, delay);
     }
   }
 
@@ -362,18 +392,6 @@ const CasinoFootball = (() => {
     // Bounce biên trên/dưới
     if (b.y < 7)  { b.vy = Math.abs(b.vy);  b.y = 7; }
     if (b.y > H-7){ b.vy = -Math.abs(b.vy); b.y = H-7; }
-
-    // Biên trái/phải (không phải vùng gôn) → đổi hướng
-    if (b.x < 7 && (b.y < H/2-26 || b.y > H/2+26)) {
-      b.vx = Math.abs(b.vx) * 0.8; b.x = 8;
-      S.possession = 'home';
-      scheduleNextPass();
-    }
-    if (b.x > W-7 && (b.y < H/2-26 || b.y > H/2+26)) {
-      b.vx = -Math.abs(b.vx) * 0.8; b.x = W-8;
-      S.possession = 'away';
-      scheduleNextPass();
-    }
 
     // Tốc độ tối thiểu — bóng luôn di chuyển
     const speed = Math.hypot(b.vx, b.vy);
@@ -412,31 +430,45 @@ const CasinoFootball = (() => {
     }
 
     // ── GOAL ──
-    const inLeftGoal  = b.x < 7  && b.y > H/2-24 && b.y < H/2+24;
-    const inRightGoal = b.x > W-7 && b.y > H/2-24 && b.y < H/2+24;
+    // Khung thành trái: x=5..33, y=H/2-26..H/2+26 (theo drawPitch)
+    // Khung thành phải: x=W-33..W-5
+    // Bóng vào gôn = vượt qua cột dọc ngoài cùng
+    const inLeftGoal  = b.x < 14 && b.y > H/2-22 && b.y < H/2+22;
+    const inRightGoal = b.x > W-14 && b.y > H/2-22 && b.y < H/2+22;
 
-    if ((inLeftGoal || inRightGoal) && S.goalAnim === 0 && S.nextGoal && !S.nextGoal.scored) {
-      S.nextGoal.scored = true;
-      const team = inRightGoal ? 'home' : 'away';
-      if (team === 'home') S.score[0]++; else S.score[1]++;
-      document.getElementById('fb-score-h').textContent = S.score[0];
-      document.getElementById('fb-score-a').textContent = S.score[1];
-      addEvent(team, S.elapsed);
-      S.goalAnim = 30;
+    // Bóng chạm cột dọc (biên) nhưng không vào gôn → bounce
+    if (b.x < 8 && !inLeftGoal)  { b.vx =  Math.abs(b.vx) * 0.8; b.x = 9;   S.receiver = -1; S.possession = 'home'; scheduleNextPass(); }
+    if (b.x > W-8 && !inRightGoal){ b.vx = -Math.abs(b.vx) * 0.8; b.x = W-9; S.receiver = -1; S.possession = 'away'; scheduleNextPass(); }
 
-      // Reset bóng về giữa sân
-      setTimeout(() => {
-        b.x = W/2; b.y = H/2 + (Math.random()-0.5)*10;
-        const angle = Math.random() * Math.PI * 2;
-        b.vx = Math.cos(angle) * 1.5;
-        b.vy = Math.sin(angle) * 0.8;
+    if ((inLeftGoal || inRightGoal) && S.goalAnim === 0) {
+      if (S.nextGoal && !S.nextGoal.scored) {
+        // Pre-gen goal → ghi bàn
+        S.nextGoal.scored = true;
+        const team = inRightGoal ? 'home' : 'away';
+        if (team === 'home') S.score[0]++; else S.score[1]++;
+        document.getElementById('fb-score-h').textContent = S.score[0];
+        document.getElementById('fb-score-a').textContent = S.score[1];
+        addEvent(team, S.elapsed);
+        S.goalAnim = 30;
         S.receiver = -1;
-        S.possession = team === 'home' ? 'away' : 'home'; // đội thủng lưới kick off
+
+        setTimeout(() => {
+          if (S.phase !== 'playing') return;
+          b.x = W/2; b.y = H/2 + (Math.random()-0.5)*10;
+          b.vx = (Math.random()-0.5)*2; b.vy = (Math.random()-0.5)*1.5;
+          S.possession = team === 'home' ? 'away' : 'home';
+          scheduleNextPass();
+        }, 1800);
+      } else {
+        // Chưa đến lúc ghi bàn → bóng bật ra khỏi gôn (thủ môn cản)
+        b.vx = inLeftGoal ? Math.abs(b.vx) * 1.1 : -Math.abs(b.vx) * 1.1;
+        b.vy += (Math.random()-0.5)*0.5;
+        b.x = inLeftGoal ? 20 : W-20;
+        S.receiver = -1;
+        // Possession về đội phòng thủ (thủ môn giữ bóng)
+        S.possession = inLeftGoal ? 'home' : 'away';
         scheduleNextPass();
-      }, 1500);
-    } else if (inLeftGoal || inRightGoal) {
-      // Gôn nhưng chưa đến lúc → bật ngược ra
-      b.vx *= -0.8; b.x = inLeftGoal ? 12 : W-12;
+      }
     }
 
     // ── Di chuyển cầu thủ theo vai trò ──

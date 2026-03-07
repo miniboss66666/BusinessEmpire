@@ -687,10 +687,16 @@
 
 .horse-finish-line {
   position: absolute;
-  right: 44px; top: 8px; bottom: 8px;
-  width: 2px;
-  background: repeating-linear-gradient(to bottom,#fff 0,#fff 4px,transparent 4px,transparent 8px);
-  opacity: 0.25;
+  right: 44px; top: 0; bottom: 0;
+  width: 14px;
+  /* Kẻ ô so le đen trắng như cờ đua */
+  background-image:
+    repeating-conic-gradient(#fff 0% 25%, #111 0% 50%);
+  background-size: 7px 7px;
+  opacity: 0.85;
+  z-index: 3;
+  border-left: 1px solid rgba(255,255,255,0.3);
+  border-right: 1px solid rgba(255,255,255,0.3);
 }
 
 .horse-lane {
@@ -900,4 +906,3 @@
   text-align: right;
   flex-shrink: 0;
 }
-

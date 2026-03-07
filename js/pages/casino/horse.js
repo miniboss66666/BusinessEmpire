@@ -105,14 +105,7 @@ const CasinoHorse = (() => {
     state.finished=[];
     state.winner=-1;
 
-    // Odds mới
-    state.odds=randomOdds();
-    HORSES.forEach((_,i)=>{
-      const el=document.getElementById('horse-odds-'+i);
-      const pk=document.getElementById('pick-odds-'+i);
-      if(el) el.textContent='×'+state.odds[i];
-      if(pk) pk.textContent='×'+state.odds[i];
-    });
+    // Giữ nguyên odds đã hiển thị khi người chơi chọn — KHÔNG random lại
 
     initHorseStates();
 

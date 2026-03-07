@@ -225,6 +225,14 @@ const HomePage = (() => {
   // ============================================
   // Settings Modal — không còn skin ở đây
   // ============================================
+  function timeSince(ts) {
+    if (!ts) return '—';
+    const sec = Math.floor((Date.now() - ts) / 1000);
+    if (sec < 60)  return sec + ' giây';
+    if (sec < 3600) return Math.floor(sec/60) + ' phút';
+    return Math.floor(sec/3600) + ' giờ';
+  }
+
   function openSettings() {
     UI.showModal(`
       <div class="settings-modal">
@@ -247,6 +255,20 @@ const HomePage = (() => {
             <option value="shorthand" ${STATE.settings.numberFormat === 'shorthand' ? 'selected' : ''}>K/M/B/T</option>
             <option value="scientific" ${STATE.settings.numberFormat === 'scientific' ? 'selected' : ''}>e9/e10</option>
           </select>
+        </div>
+
+        <!-- Last saved + manual save -->
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">💾 Lưu Game</div>
+            <div class="settings-sub" id="settings-last-save">
+              ${STATE.lastSave ? '🕐 ' + timeSince(STATE.lastSave) + ' trước' : 'Chưa lưu lần nào'}
+            </div>
+          </div>
+          <button class="click-upgrade-btn" id="btn-manual-save"
+                  style="border-color:var(--accent);color:var(--accent)">
+            LƯU NGAY
+          </button>
         </div>
 
         <div class="settings-row">
@@ -286,6 +308,20 @@ const HomePage = (() => {
 
     document.getElementById('format-select')?.addEventListener('change', function() {
       STATE.settings.numberFormat = this.value;
+    });
+
+    // Nút save thủ công
+    document.getElementById('btn-manual-save')?.addEventListener('click', async function() {
+      this.disabled = true;
+      this.textContent = '...';
+      await Save.saveNow();
+      this.textContent = '✓ ĐÃ LƯU';
+      // Cập nhật label thời gian
+      const lbl = document.getElementById('settings-last-save');
+      if (lbl) lbl.textContent = '🕐 vừa xong';
+      setTimeout(() => {
+        if (this) { this.disabled = false; this.textContent = 'LƯU NGAY'; }
+      }, 2000);
     });
   }
 
