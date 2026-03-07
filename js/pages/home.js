@@ -260,6 +260,14 @@ const HomePage = (() => {
           <button class="click-upgrade-btn" style="border-color:var(--red);color:var(--red)"
                   onclick="confirmReset()">RESET</button>
         </div>
+
+        <!-- Version -->
+        <div style="text-align:center;padding-top:4px">
+          <span style="font-family:'Orbitron',monospace;font-size:0.65rem;
+                       color:var(--text-dim);letter-spacing:2px;opacity:0.5">
+            BUSINESS EMPIRE v${CONFIG.VERSION}
+          </span>
+        </div>
       </div>
     `);
 
