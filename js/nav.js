@@ -44,7 +44,7 @@ const Nav = (() => {
   function onPageEnter(page) {
     switch (page) {
       case 'home':       if (typeof HomePage     !== 'undefined') HomePage.render();     break;
-      case 'business':   if (typeof BusinessPage !== 'undefined') BusinessPage.render(); break;
+      case 'business':   if (typeof BusinessPage !== 'undefined') BusinessPage.init(); break;
       case 'realestate': if (typeof RealEstate   !== 'undefined') RealEstate.render();   break;
       case 'stock':      if (typeof StockPage    !== 'undefined') StockPage.render();    break;
       case 'phone':      if (typeof PhonePage    !== 'undefined') PhonePage.render();    break;
