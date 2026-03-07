@@ -1,1 +1,770 @@
-/* placeholder */
+/* ============================================
+   CASINO.CSS
+   ============================================ */
+
+#page-casino {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.casino-header {
+  padding: 14px 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.casino-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(245,197,24,0.4);
+}
+
+.casino-balance {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.casino-balance span {
+  color: var(--green);
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+}
+
+/* ===== TABS ===== */
+.casino-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 10px 16px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.casino-tabs::-webkit-scrollbar { display: none; }
+
+.casino-tab {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.casino-tab:hover { border-color: var(--gold); color: var(--text); }
+
+.casino-tab.active {
+  background: rgba(245,197,24,0.15);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.casino-tab.casino-tab-coming {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.casino-tab.casino-tab-coming:hover {
+  border-color: var(--text-dim);
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+/* ===== GAME AREA ===== */
+#casino-game-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+
+#casino-game-area::-webkit-scrollbar { width: 3px; }
+#casino-game-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.casino-game-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== SHARED STATS ===== */
+.casino-stats {
+  display: flex;
+  gap: 8px;
+}
+
+.casino-stat {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+}
+
+.casino-stat-label {
+  font-size: 0.58rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.casino-stat-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-top: 2px;
+}
+
+/* ===== RESULT ===== */
+.casino-result {
+  text-align: center;
+  padding: 10px;
+  border-radius: 10px;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.casino-result.show  { opacity: 1; }
+.casino-result.win   { background: rgba(0,255,136,0.1); border: 1px solid var(--green); color: var(--green); }
+.casino-result.lose  { background: rgba(255,68,85,0.1);  border: 1px solid var(--red);   color: var(--red);   }
+.casino-result.push  { background: rgba(245,197,24,0.1); border: 1px solid var(--gold);  color: var(--gold);  }
+
+/* ===== PLAY BUTTON ===== */
+.casino-play-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.casino-play-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245,197,24,0.35);
+}
+
+.casino-play-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+/* ===== COMING SOON ===== */
+.casino-coming-soon {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  letter-spacing: 3px;
+}
+
+/* ===== BET CONTROLS ===== */
+.bet-controls {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.bet-money-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.bet-money-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bet-money-btn.active {
+  border-color: var(--gold);
+  color: var(--text-bright);
+  background: rgba(245,197,24,0.1);
+}
+
+.bet-money-bal {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.58rem;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.bet-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bet-presets {
+  display: flex;
+  gap: 4px;
+}
+
+.bet-preset {
+  padding: 5px 9px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.bet-preset:hover { border-color: var(--gold); color: var(--gold); }
+
+.bet-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text-bright);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  text-align: right;
+  outline: none;
+  min-width: 0;
+}
+
+.bet-input:focus { border-color: var(--gold); }
+.bet-input::placeholder { color: var(--text-dim); font-size: 0.65rem; }
+
+/* ============================================
+   SLOTS
+   ============================================ */
+.slots-machine {
+  background: linear-gradient(135deg, var(--bg2), var(--bg3));
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.slots-reels {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.slots-reel {
+  width: 70px;
+  height: 76px;
+  background: var(--bg);
+  border: 2px solid var(--border2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.1rem;
+}
+
+.slots-reel.spinning { animation: reelBlur 0.1s steps(1) infinite; }
+
+@keyframes reelBlur {
+  0%   { filter: blur(2px); }
+  50%  { filter: blur(5px); }
+  100% { filter: blur(2px); }
+}
+
+.slots-reel.win-reel {
+  border-color: var(--gold);
+  box-shadow: 0 0 14px rgba(245,197,24,0.5);
+  animation: winPulse 0.5s ease-in-out 3;
+}
+
+@keyframes winPulse {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.08); }
+}
+
+.slots-paytable {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.slots-pay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 8px;
+  background: var(--bg);
+  border-radius: 5px;
+  font-size: 0.68rem;
+}
+
+.slots-pay-icons { letter-spacing: -2px; }
+.slots-pay-mult  { color: var(--gold); font-weight: 700; font-family: 'Orbitron', monospace; }
+
+/* ============================================
+   BLACKJACK
+   ============================================ */
+.bj-table {
+  background: radial-gradient(ellipse at center, #0a2a1a, #051510);
+  border: 2px solid #1a4a2a;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.bj-area-label {
+  font-size: 0.58rem;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.bj-cards {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  min-height: 68px;
+  align-items: flex-start;
+}
+
+.bj-card {
+  width: 44px;
+  height: 62px;
+  background: #fff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 900;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+  animation: dealCard 0.2s ease-out;
+  flex-shrink: 0;
+}
+
+@keyframes dealCard {
+  from { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.bj-card.red   { color: #cc0000; }
+.bj-card.black { color: #111; }
+.bj-card.back  { background: linear-gradient(135deg,#1a1a8e,#0a0a5e); color: transparent; }
+.bj-card.back::after { content:'🂠'; font-size:1.7rem; color:rgba(255,255,255,0.6); }
+
+.bj-score {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.45);
+  margin-top: 4px;
+}
+
+.bj-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.bj-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bj-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); background: rgba(245,197,24,0.08); }
+.bj-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ============================================
+   BACCARAT
+   ============================================ */
+.baccarat-table {
+  background: radial-gradient(ellipse at center, #1a0a2a, #0a0515);
+  border: 2px solid #3a1a5a;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bacc-side { flex: 1; }
+
+.bacc-vs {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  color: var(--gold);
+  padding-top: 20px;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   ROULETTE
+   ============================================ */
+.roulette-wheel-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0;
+}
+
+.roulette-wheel {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 4px solid var(--gold);
+  box-shadow: 0 0 28px rgba(245,197,24,0.3), inset 0 0 18px rgba(0,0,0,0.5);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(
+    #c00 0deg 9.73deg, #111 9.73deg 19.46deg, #c00 19.46deg 29.19deg,
+    #111 29.19deg 38.92deg, #c00 38.92deg 48.65deg, #111 48.65deg 58.38deg,
+    #c00 58.38deg 68.11deg, #111 68.11deg 77.84deg, #c00 77.84deg 87.57deg,
+    #111 87.57deg 97.3deg,  #c00 97.3deg 107.03deg, #111 107.03deg 116.76deg,
+    #c00 116.76deg 126.49deg, #111 126.49deg 136.22deg, #c00 136.22deg 145.95deg,
+    #111 145.95deg 155.68deg, #c00 155.68deg 165.41deg, #111 165.41deg 175.14deg,
+    #008800 175.14deg 184.87deg,
+    #c00 184.87deg 194.6deg, #111 194.6deg 204.33deg, #c00 204.33deg 214.06deg,
+    #111 214.06deg 223.79deg, #c00 223.79deg 233.52deg, #111 233.52deg 243.25deg,
+    #c00 243.25deg 252.98deg, #111 252.98deg 262.71deg, #c00 262.71deg 272.44deg,
+    #111 272.44deg 282.17deg, #c00 282.17deg 291.9deg, #111 291.9deg 301.63deg,
+    #c00 301.63deg 311.36deg, #111 311.36deg 321.09deg, #c00 321.09deg 330.82deg,
+    #111 330.82deg 340.55deg, #c00 340.55deg 350.28deg, #111 350.28deg 360deg
+  );
+  transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 1.0);
+}
+
+.roulette-pointer {
+  position: absolute;
+  top: -12px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 14px solid var(--gold);
+  z-index: 10;
+  filter: drop-shadow(0 0 4px rgba(245,197,24,0.8));
+}
+
+.roulette-bets {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 6px;
+}
+
+.roulette-bet-btn {
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text-dim);
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-family: 'Orbitron', monospace;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.roulette-bet-btn:hover { border-color: var(--gold); color: var(--gold); }
+.roulette-bet-btn.selected { background: rgba(245,197,24,0.12); border-color: var(--gold); color: var(--gold); }
+.roulette-bet-btn.red-btn   { border-color: #c00; color: #ff6666; }
+.roulette-bet-btn.red-btn.selected { background: rgba(200,0,0,0.15); }
+.roulette-bet-btn.black-btn { border-color: #555; color: #aaa; }
+.roulette-bet-btn.black-btn.selected { background: rgba(100,100,100,0.15); }
+.roulette-bet-btn.green-btn { border-color: #080; color: #0f0; }
+.roulette-bet-btn.green-btn.selected { background: rgba(0,128,0,0.15); }
+
+/* ============================================
+   DICE
+   ============================================ */
+.dice-display {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.dice-face { font-size: 3rem; transition: all 0.05s; }
+.dice-plus { font-size: 1.5rem; color: var(--text-dim); font-weight: 700; }
+.dice-sum  { font-family: 'Orbitron', monospace; font-size: 1.4rem; font-weight: 900; color: var(--gold); }
+
+.dice-bet-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 6px;
+}
+
+.dice-bet-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dice-bet-btn:hover { border-color: var(--gold); }
+.dice-bet-btn.selected { background: rgba(245,197,24,0.1); border-color: var(--gold); }
+
+.dice-bet-label { font-size: 0.75rem; color: var(--text); font-weight: 700; }
+.dice-bet-mult  { font-family: 'Orbitron', monospace; font-size: 0.65rem; color: var(--gold); }
+
+/* ============================================
+   SPORT SHARED
+   ============================================ */
+.sport-match-card {
+  background: linear-gradient(135deg, #0a1a0a, #051005);
+  border: 1px solid #1a4a1a;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.sport-match-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sport-team {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  flex: 1;
+  text-align: center;
+}
+
+.sport-score {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--gold);
+  padding: 0 10px;
+  text-shadow: 0 0 14px rgba(245,197,24,0.4);
+}
+
+.sport-timer-bar-wrap {
+  background: var(--bg3);
+  border-radius: 4px;
+  height: 5px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.sport-timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--gold));
+  border-radius: 4px;
+  transition: width 0.9s linear;
+}
+
+.sport-timer-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.sport-events {
+  max-height: 52px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.sport-events::-webkit-scrollbar { display: none; }
+
+.sport-event {
+  font-size: 0.66rem;
+  color: var(--green);
+  padding: 2px 6px;
+  background: rgba(0,255,136,0.06);
+  border-radius: 4px;
+  animation: fadeSlide 0.3s ease;
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sport-bet-odds {
+  display: flex;
+  gap: 7px;
+}
+
+.sport-odds-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 5px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sport-odds-btn:hover:not(:disabled) { border-color: var(--gold); }
+.sport-odds-btn.selected { background: rgba(245,197,24,0.1); border-color: var(--gold); }
+.sport-odds-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.odds-team { font-size: 0.6rem; color: var(--text-dim); text-align: center; }
+.odds-val  { font-family: 'Orbitron', monospace; font-size: 0.88rem; font-weight: 700; color: var(--gold); }
+
+/* ============================================
+   HORSE RACING
+   ============================================ */
+.horse-track {
+  background: linear-gradient(135deg, #0a0a18, #050510);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+}
+
+.horse-finish-line {
+  position: absolute;
+  right: 44px; top: 8px; bottom: 8px;
+  width: 2px;
+  background: repeating-linear-gradient(to bottom,#fff 0,#fff 4px,transparent 4px,transparent 8px);
+  opacity: 0.25;
+}
+
+.horse-lane {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.horse-name {
+  font-size: 0.58rem;
+  font-weight: 700;
+  width: 72px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.horse-lane-track {
+  flex: 1;
+  height: 22px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.horse-runner {
+  position: absolute;
+  left: 0%;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  transition: left 0.1s linear;
+  line-height: 1;
+}
+
+.horse-odds-tag {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--gold);
+  width: 34px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.horse-bet-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.horse-pick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 3px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.58rem;
+}
+
+.horse-pick-btn:hover:not(:disabled) { opacity: 0.85; }
+.horse-pick-btn.selected { background: rgba(255,255,255,0.07); }
+.horse-pick-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.horse-pick-odds {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gold);
+}

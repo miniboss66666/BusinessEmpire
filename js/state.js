@@ -121,4 +121,12 @@ const STATE = {
   lastSave: null,
   lastOnline: null,
 
+  // --- Casino ---
+  casino: {
+    slotsWon: 0,
+    slotsSpins: 0,
+    crashBest: 1,
+    crashProfit: 0,
+  },
+
 };
