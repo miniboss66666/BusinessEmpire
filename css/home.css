@@ -10,6 +10,8 @@
   padding: 16px;
   max-width: 480px;
   margin: 0 auto;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 /* ===== SETTINGS BUTTON ===== */
@@ -49,44 +51,25 @@
   transition: transform 0.3s;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   user-select: none;
+  flex-shrink: 0;
 }
 
 .bank-card:hover { transform: translateY(-4px) scale(1.01); }
 .bank-card:active { transform: scale(0.98); }
 
-/* Default skin */
-.bank-card.skin-0 {
-  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-}
-.bank-card.skin-1 {
-  background: linear-gradient(135deg, #0d0d0d, #1a1a1a, #2d2d2d);
-}
-.bank-card.skin-2 {
-  background: linear-gradient(135deg, #1a0a00, #3d1500, #7a2d00);
-}
-.bank-card.skin-3 {
-  background: linear-gradient(135deg, #000428, #004e92);
-}
-.bank-card.skin-4 {
-  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-}
-.bank-card.skin-5 {
-  background: linear-gradient(135deg, #000000, #434343);
-}
-.bank-card.skin-6 {
-  background: linear-gradient(135deg, #093028, #237a57);
-}
-.bank-card.skin-7 {
-  background: linear-gradient(135deg, #1f1c18, #3d3520, #7a6c30);
-}
-.bank-card.skin-8 {
-  background: linear-gradient(135deg, #0a0a0a, #1a0a2e, #2d0a5e);
-}
-.bank-card.skin-9 {
-  background: linear-gradient(135deg, #000000, #c0a000, #ffd700);
-}
+/* Skins */
+.bank-card.skin-0 { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); }
+.bank-card.skin-1 { background: linear-gradient(135deg, #0d0d0d, #1a1a1a, #2d2d2d); }
+.bank-card.skin-2 { background: linear-gradient(135deg, #1a0a00, #3d1500, #7a2d00); }
+.bank-card.skin-3 { background: linear-gradient(135deg, #000428, #004e92); }
+.bank-card.skin-4 { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+.bank-card.skin-5 { background: linear-gradient(135deg, #000000, #434343); }
+.bank-card.skin-6 { background: linear-gradient(135deg, #093028, #237a57); }
+.bank-card.skin-7 { background: linear-gradient(135deg, #1f1c18, #3d3520, #7a6c30); }
+.bank-card.skin-8 { background: linear-gradient(135deg, #0a0a0a, #1a0a2e, #2d0a5e); }
+.bank-card.skin-9 { background: linear-gradient(135deg, #000000, #c0a000, #ffd700); }
 
-/* Card shine effect */
+/* Card shine */
 .bank-card::after {
   content: '';
   position: absolute;
@@ -170,6 +153,7 @@
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .income-label {
@@ -198,11 +182,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-shrink: 0;
 }
 
-.click-upgrade-info {
-  flex: 1;
-}
+.click-upgrade-info { flex: 1; }
 
 .click-upgrade-title {
   font-weight: 700;
@@ -242,7 +225,8 @@
 .click-zone {
   width: 100%;
   max-width: 380px;
-  height: 180px;
+  flex: 1;           /* ← chiếm hết phần còn lại */
+  min-height: 160px; /* ← tối thiểu để không quá nhỏ */
   background: var(--bg2);
   border: 2px solid var(--border);
   border-radius: 20px;
@@ -273,7 +257,7 @@
 }
 
 .click-zone-icon {
-  font-size: 3rem;
+  font-size: 3.5rem;
   display: block;
   margin-bottom: 8px;
   transition: transform 0.1s;
@@ -292,13 +276,13 @@
 
 .click-zone-value {
   font-family: 'Orbitron', monospace;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--gold);
   margin-top: 4px;
 }
 
-/* Click ripple effect */
+/* Click ripple */
 .click-ripple {
   position: absolute;
   border-radius: 50%;
@@ -312,7 +296,7 @@
   to { transform: scale(4); opacity: 0; }
 }
 
-/* Floating +$ text */
+/* Floating +$ */
 .float-text {
   position: fixed;
   font-family: 'Orbitron', monospace;
@@ -325,7 +309,7 @@
 }
 
 @keyframes floatUp {
-  0% { opacity: 1; transform: translateY(0); }
+  0%   { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-60px); }
 }
 
@@ -366,7 +350,7 @@
   margin-top: 2px;
 }
 
-/* Toggle switch */
+/* Toggle */
 .toggle {
   width: 44px;
   height: 24px;
@@ -391,7 +375,7 @@
 
 .toggle.on::after { transform: translateX(20px); }
 
-/* Format selector */
+/* Format select */
 .format-select {
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -404,7 +388,7 @@
   outline: none;
 }
 
-/* Skin selector */
+/* Skin grid */
 .skin-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

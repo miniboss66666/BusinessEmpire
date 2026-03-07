@@ -4,9 +4,6 @@
 
 const HomePage = (() => {
 
-  // ============================================
-  // Data
-  // ============================================
   const SKIN_DATA = [
     { price: 0,          buff: 0,    name: 'Default' },
     { price: 10000,      buff: 0.05, name: 'Onyx' },
@@ -15,7 +12,7 @@ const HomePage = (() => {
     { price: 1000000,    buff: 0.2,  name: 'Cosmos' },
     { price: 5000000,    buff: 0.25, name: 'Obsidian' },
     { price: 25000000,   buff: 0.3,  name: 'Emerald' },
-    { price: 100000000,  buff: 0.35, name: 'Bronze II' },
+    { price: 100000000,  buff: 0.35, name: 'Gold II' },
     { price: 500000000,  buff: 0.4,  name: 'Nebula' },
     { price: 7000000000, buff: 0.5,  name: 'Gold MAX' },
   ];
@@ -33,9 +30,6 @@ const HomePage = (() => {
     'linear-gradient(135deg,#000000,#c0a000,#ffd700)',
   ];
 
-  // ============================================
-  // Init (chỉ chạy 1 lần)
-  // ============================================
   let initialized = false;
 
   function init() {
@@ -44,16 +38,13 @@ const HomePage = (() => {
     render();
   }
 
-  // ============================================
-  // Render HTML
-  // ============================================
   function render() {
     const container = document.getElementById('page-home');
     container.innerHTML = `
       <button class="home-settings-btn" id="home-settings-btn" title="Cài đặt">⚙️</button>
 
-      <!-- Bank Card -->
-      <div class="bank-card skin-${STATE.cardSkin}" id="bank-card">
+      <!-- Bank Card — click để chọn skin -->
+      <div class="bank-card skin-${STATE.cardSkin}" id="bank-card" title="Nhấn để đổi skin">
         <div class="card-chip"></div>
         <div class="card-balance-label">BALANCE</div>
         <div class="card-balance" id="hud-balance">${Format.money(STATE.balance)}</div>
@@ -94,29 +85,18 @@ const HomePage = (() => {
     bindEvents();
   }
 
-  // ============================================
-  // Helpers
-  // ============================================
-  function State_clickMaxed() {
-    return STATE.clickLevel >= 20;
-  }
+  function State_clickMaxed() { return STATE.clickLevel >= 20; }
 
   function getClickUpgradeSub() {
     if (State_clickMaxed()) return 'Đã đạt cấp tối đa!';
-    const price = Engine.getClickUpgradePrice();
-    return `Lên Lv.${STATE.clickLevel + 1} — ${Format.money(price)}`;
+    return `Lên Lv.${STATE.clickLevel + 1} — ${Format.money(Engine.getClickUpgradePrice())}`;
   }
 
   function getClickUpgradeLabel() {
-    if (State_clickMaxed()) return 'MAX';
-    return 'NÂNG CẤP';
+    return State_clickMaxed() ? 'MAX' : 'NÂNG CẤP';
   }
 
-  // ============================================
-  // Bind Events
-  // ============================================
   function bindEvents() {
-    // Click zone
     const zone = document.getElementById('click-zone');
     zone?.addEventListener('click', (e) => {
       const earned = Engine.handleClick();
@@ -125,7 +105,6 @@ const HomePage = (() => {
       updateClickZone();
     });
 
-    // Upgrade click
     document.getElementById('btn-click-upgrade')?.addEventListener('click', () => {
       const success = Engine.upgradeClick();
       if (success) {
@@ -137,21 +116,16 @@ const HomePage = (() => {
       }
     });
 
-    // Settings
+    // Click card → mở skin picker
+    document.getElementById('bank-card')?.addEventListener('click', openSkinPicker);
+
     document.getElementById('home-settings-btn')?.addEventListener('click', openSettings);
   }
 
-  // ============================================
-  // Update UI
-  // ============================================
   function updateClickUpgrade() {
-    const box = document.getElementById('click-upgrade-box');
-    if (!box) return;
-
-    const title = box.querySelector('.click-upgrade-title');
+    const title = document.querySelector('.click-upgrade-title');
     const sub = document.getElementById('click-upgrade-sub');
     const btn = document.getElementById('btn-click-upgrade');
-
     if (title) title.textContent = `⚡ Click Power — Lv.${STATE.clickLevel}`;
     if (sub) sub.textContent = getClickUpgradeSub();
     if (btn) {
@@ -166,9 +140,6 @@ const HomePage = (() => {
     if (valEl) valEl.textContent = '+' + Format.money(Engine.getClickValue()) + '/click';
   }
 
-  // ============================================
-  // Hiệu ứng click
-  // ============================================
   function spawnFloatText(x, y, text) {
     const el = document.createElement('div');
     el.className = 'float-text';
@@ -185,8 +156,7 @@ const HomePage = (() => {
     ripple.className = 'click-ripple';
     const size = Math.max(rect.width, rect.height);
     Object.assign(ripple.style, {
-      width: size + 'px',
-      height: size + 'px',
+      width: size + 'px', height: size + 'px',
       left: (e.clientX - rect.left - size / 2) + 'px',
       top: (e.clientY - rect.top - size / 2) + 'px',
     });
@@ -195,24 +165,71 @@ const HomePage = (() => {
   }
 
   // ============================================
-  // Settings Modal
+  // Skin Picker — mở khi click vào card
+  // ============================================
+  function openSkinPicker() {
+    UI.showModal(`
+      <div class="settings-modal">
+        <div class="settings-title">🎴 SKIN THẺ</div>
+        <div class="skin-grid" style="margin-top:8px">
+          ${SKIN_DATA.map((s, i) => `
+            <div>
+              <div class="skin-option ${STATE.cardSkin === i ? 'selected' : ''}
+                   ${!STATE.unlockedSkins.includes(i) ? 'skin-locked' : ''}"
+                   style="background:${SKIN_GRADIENTS[i]}"
+                   data-skin="${i}"></div>
+              <div class="skin-price" style="color:var(--text)">${s.name}</div>
+              <div class="skin-price">
+                ${STATE.unlockedSkins.includes(i)
+                  ? (i === 0 ? 'Free' : '<span style="color:var(--green)">✓ Đã có</span>')
+                  : Format.money(s.price)
+                }
+              </div>
+              ${s.buff > 0
+                ? `<div class="skin-price" style="color:var(--gold)">+${s.buff*100}% 💰</div>`
+                : '<div class="skin-price">—</div>'
+              }
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `);
+
+    document.querySelectorAll('.skin-option').forEach(el => {
+      el.addEventListener('click', () => {
+        const i = parseInt(el.dataset.skin);
+        if (!STATE.unlockedSkins.includes(i)) {
+          const price = SKIN_DATA[i].price;
+          if (STATE.balance < price) return UI.toast('Không đủ tiền!', 'error');
+          STATE.balance -= price;
+          STATE.unlockedSkins.push(i);
+          UI.toast(`🎴 Mở khóa ${SKIN_DATA[i].name}!`, 'success');
+        }
+        STATE.cardSkin = i;
+        document.getElementById('bank-card')?.setAttribute('class', `bank-card skin-${i}`);
+        document.querySelectorAll('.skin-option').forEach(s => s.classList.remove('selected'));
+        el.classList.add('selected');
+        Engine.recalcIncome();
+      });
+    });
+  }
+
+  // ============================================
+  // Settings Modal — không còn skin ở đây
   // ============================================
   function openSettings() {
     UI.showModal(`
       <div class="settings-modal">
         <div class="settings-title">⚙️ CÀI ĐẶT</div>
 
-        <!-- Theme -->
         <div class="settings-row">
           <div>
             <div class="settings-label">Giao diện</div>
             <div class="settings-sub">Sáng / Tối</div>
           </div>
-          <div class="toggle ${STATE.settings.theme === 'light' ? 'on' : ''}"
-               id="theme-toggle"></div>
+          <div class="toggle ${STATE.settings.theme === 'light' ? 'on' : ''}" id="theme-toggle"></div>
         </div>
 
-        <!-- Number format -->
         <div class="settings-row">
           <div>
             <div class="settings-label">Format số</div>
@@ -224,36 +241,17 @@ const HomePage = (() => {
           </select>
         </div>
 
-        <!-- Card skins -->
-        <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px">
-          <div class="settings-label">🎴 Card Skin</div>
-          <div class="skin-grid" style="width:100%">
-            ${SKIN_DATA.map((s, i) => `
-              <div>
-                <div class="skin-option ${STATE.cardSkin === i ? 'selected' : ''}
-                     ${!STATE.unlockedSkins.includes(i) ? 'skin-locked' : ''}"
-                     style="background:${SKIN_GRADIENTS[i]}"
-                     data-skin="${i}"></div>
-                <div class="skin-price">${i === 0 ? 'Free' : Format.money(s.price)}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <!-- Redeem -->
         <div class="settings-row">
           <div class="settings-label">🎟️ Redeem Code</div>
           <button class="click-upgrade-btn" onclick="Redeem.openModal()">NHẬP MÃ</button>
         </div>
 
-        <!-- Logout -->
         <div class="settings-row">
           <div class="settings-label">🚪 Đăng xuất</div>
           <button class="click-upgrade-btn" style="border-color:var(--red);color:var(--red)"
                   onclick="Auth.logout()">LOGOUT</button>
         </div>
 
-        <!-- Reset -->
         <div class="settings-row">
           <div>
             <div class="settings-label" style="color:var(--red)">⚠️ Reset tài khoản</div>
@@ -265,40 +263,19 @@ const HomePage = (() => {
       </div>
     `);
 
-    // Theme toggle
     document.getElementById('theme-toggle')?.addEventListener('click', function() {
       UI.toggleTheme();
       this.classList.toggle('on');
     });
 
-    // Format select
     document.getElementById('format-select')?.addEventListener('change', function() {
       STATE.settings.numberFormat = this.value;
     });
-
-    // Skin select
-    document.querySelectorAll('.skin-option').forEach(el => {
-      el.addEventListener('click', () => {
-        const i = parseInt(el.dataset.skin);
-        if (!STATE.unlockedSkins.includes(i)) {
-          // Mua skin
-          const price = SKIN_DATA[i].price;
-          if (STATE.balance < price) return UI.toast('Không đủ tiền!', 'error');
-          STATE.balance -= price;
-          STATE.unlockedSkins.push(i);
-        }
-        STATE.cardSkin = i;
-        document.getElementById('bank-card')?.setAttribute(
-          'class', `bank-card skin-${i}`
-        );
-        document.querySelectorAll('.skin-option').forEach(s => s.classList.remove('selected'));
-        el.classList.add('selected');
-        Engine.recalcIncome();
-      });
-    });
   }
 
+  // ============================================
   // Reset với mã xác nhận
+  // ============================================
   window.confirmReset = function() {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     let countdown = 5;
@@ -315,8 +292,7 @@ const HomePage = (() => {
         <div style="font-family:'Orbitron',monospace;font-size:1.4rem;
                     font-weight:700;color:var(--gold);margin-bottom:12px;
                     letter-spacing:4px">${code}</div>
-        <input type="text" id="reset-code-input"
-               placeholder="Nhập mã xác nhận"
+        <input type="text" id="reset-code-input" placeholder="Nhập mã xác nhận"
                style="width:100%;padding:10px;background:var(--bg3);
                       border:1px solid var(--border2);border-radius:8px;
                       color:var(--text);font-family:'Orbitron',monospace;
@@ -333,7 +309,6 @@ const HomePage = (() => {
       </div>
     `);
 
-    // Countdown
     const timer = setInterval(() => {
       countdown--;
       const cdEl = document.getElementById('reset-countdown');
@@ -341,10 +316,7 @@ const HomePage = (() => {
       if (cdEl) cdEl.textContent = countdown;
       if (countdown <= 0) {
         clearInterval(timer);
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'XÁC NHẬN RESET';
-        }
+        if (btn) { btn.disabled = false; btn.textContent = 'XÁC NHẬN RESET'; }
       }
     }, 1000);
 
@@ -356,6 +328,6 @@ const HomePage = (() => {
     });
   };
 
-  return { init, render };
+  return { init, render, openSkinPicker };
 
 })();
