@@ -7,9 +7,6 @@ const Engine = (() => {
 
   let tickInterval = null;
 
-  // CPS tracking — lưu timestamp của các click gần đây
-  let clickTimestamps = [];
-
   // ============================================
   // DATA - Click power
   // ============================================
@@ -120,14 +117,26 @@ const Engine = (() => {
     return Math.floor(y.followers / 1000) + Math.floor(tubeyou.subscribers / 1000);
   }
 
+  // CPS tracking — circular buffer cố định 300 slots
+  // 300 là đủ cho ~20 CPS × 3s window, không bao giờ grow vô hạn
+  const CLICK_BUF_SIZE = 300;
+  const clickTimestamps = new Float64Array(CLICK_BUF_SIZE);
+  let clickBufHead = 0; // con trỏ ghi tiếp theo
+  let clickBufCount = 0; // tổng số entries hợp lệ
+
   // ============================================
   // CPS - tính trong 3 giây gần nhất
   // ============================================
   function getCPS() {
+    if (clickBufCount === 0) return 0;
     const now = Date.now();
-    const windowMs = 3000;
-    clickTimestamps = clickTimestamps.filter(t => now - t < windowMs);
-    return clickTimestamps.length / (windowMs / 1000);
+    const cutoff = now - 3000;
+    let count = 0;
+    const len = Math.min(clickBufCount, CLICK_BUF_SIZE);
+    for (let i = 0; i < len; i++) {
+      if (clickTimestamps[i] > cutoff) count++;
+    }
+    return count / 3;
   }
 
   function getClickIncomePerMin() {
@@ -184,8 +193,11 @@ const Engine = (() => {
     const value = getClickValue();
     STATE.balance += value;
     STATE.totalEarned += value;
-    clickTimestamps.push(Date.now());
-    _scheduleBalanceUpdate(); // smooth, không block main thread
+    // Ghi vào circular buffer — overwrite slot cũ nhất khi đầy
+    clickTimestamps[clickBufHead] = Date.now();
+    clickBufHead = (clickBufHead + 1) % CLICK_BUF_SIZE;
+    if (clickBufCount < CLICK_BUF_SIZE) clickBufCount++;
+    _scheduleBalanceUpdate();
     return value;
   }
 
