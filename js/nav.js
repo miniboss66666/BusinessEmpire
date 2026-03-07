@@ -51,7 +51,7 @@ const Nav = (() => {
       case 'casino':     if (typeof CasinoPage   !== 'undefined') CasinoPage.render();   break;
       case 'underground':if (typeof Underground  !== 'undefined') Underground.render();  break;
       case 'knowledge':  if (typeof Knowledge    !== 'undefined') Knowledge.render();    break;
-      case 'profile':    if (typeof ProfilePage  !== 'undefined') ProfilePage.render();  break;
+      case 'profile':    if (typeof ProfilePage  !== 'undefined') ProfilePage.init();  break;
     }
   }
 
