@@ -10,6 +10,7 @@
   z-index: 100;
   gap: 2px;
   padding: 4px;
+  flex-shrink: 0; /* ← không bị nén bởi flex parent */
 }
 
 /* ===== DESKTOP: dọc bên trái ===== */
@@ -17,9 +18,11 @@
   #main-nav {
     flex-direction: column;
     width: 80px;
-    height: 100vh;
+    height: 100%;
     border-right-width: 1px;
     border-top-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
     padding: 8px 4px;
     overflow-y: auto;
   }
@@ -33,9 +36,17 @@
     height: 60px;
     border-top-width: 1px;
     border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
     padding: 4px;
     overflow-x: auto;
+    overflow-y: hidden;
+    /* Đặt ở dưới cùng — game-screen là flex-col nên nav tự xuống đáy */
+    order: 2;
   }
+
+  /* Ẩn scrollbar ngang nhưng vẫn scroll được */
+  #main-nav::-webkit-scrollbar { display: none; }
 }
 
 /* ===== NAV BUTTON ===== */
@@ -50,7 +61,7 @@
   border-radius: 10px;
   color: var(--text-dim);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s;
   position: relative;
   flex-shrink: 0;
 }
@@ -75,17 +86,18 @@
   color: var(--text);
 }
 
-/* Active state */
+/* ===== ACTIVE STATE chung ===== */
 .nav-btn.active {
-  background: var(--bg3);
-  color: var(--gold);
+  color: var(--text-bright);
+  background: #2a3040; /* xám xanh nhạt */
 }
 
+/* Indicator line */
 .nav-btn.active::before {
   content: '';
   position: absolute;
   border-radius: 2px;
-  background: var(--gold);
+  background: var(--accent);
 }
 
 @media (min-width: 768px) {
@@ -102,11 +114,21 @@
   }
 }
 
-/* Home button - nổi bật hơn */
-.home-btn.active {
-  color: var(--gold);
+/* ===== HOME BUTTON — nổi bật hơn ===== */
+.nav-btn[data-page="home"] {
+  /* không active: xám bình thường */
 }
 
+.nav-btn[data-page="home"].active {
+  background: #1a3a5c;           /* nền xanh navy */
+  color: var(--accent);          /* icon+text xanh sáng */
+}
+
+.nav-btn[data-page="home"].active::before {
+  background: var(--accent);     /* indicator cũng xanh */
+}
+
+/* ===== ICON & LABEL ===== */
 .nav-icon {
   font-size: 1.3rem;
   line-height: 1;

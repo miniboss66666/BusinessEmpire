@@ -63,7 +63,7 @@
 html, body {
   width: 100%;
   height: 100%;
-  overflow: hidden; /* SPA: scroll xảy ra bên trong page-container */
+  overflow: hidden;
 }
 
 body {
@@ -82,38 +82,33 @@ body {
   height: 100%;
 }
 
-/* Desktop: nav dọc trái + content chiếm phần còn lại */
+/* Desktop: nav dọc trái */
 @media (min-width: 768px) {
-  .game-screen {
-    flex-direction: row;
-  }
+  .game-screen { flex-direction: row; }
 
   #page-container {
     flex: 1;
-    height: 100vh;
-    overflow-y: auto; /* ← scroll nội dung page tại đây */
+    height: 100%;        /* ← phải là 100% không phải 100vh */
+    overflow-y: auto;
   }
 }
 
-/* Mobile: nav ngang dưới + content phía trên */
+/* Mobile: content trên, nav dưới */
 @media (max-width: 767px) {
-  .game-screen {
-    flex-direction: column;
-  }
+  .game-screen { flex-direction: column; }
 
   #page-container {
     flex: 1;
-    overflow-y: auto; /* ← scroll nội dung page tại đây */
-    /* Chừa chỗ cho nav bottom 60px */
-    padding-bottom: 0;
+    min-height: 0;       /* ← quan trọng: cho phép flex child co lại */
+    overflow-y: auto;
   }
 }
 
 /* ===== PAGE ===== */
 .page {
   width: 100%;
-  height: 100%;
-  padding: 16px;
+  height: 100%;          /* ← height 100% để #page-home inherit được */
+  /* KHÔNG có padding ở đây — từng page tự quản lý padding */
 }
 
 /* ===== SCROLLBAR ===== */
