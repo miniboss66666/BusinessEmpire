@@ -169,16 +169,23 @@ const Engine = (() => {
     return CLICK_LEVELS[nextLvl]?.price || null;
   }
 
+  // rAF batch — chỉ update balance 1 lần/frame dù click bao nhiêu
+  let _rafPending = false;
+  function _scheduleBalanceUpdate() {
+    if (_rafPending) return;
+    _rafPending = true;
+    requestAnimationFrame(() => {
+      _rafPending = false;
+      if (typeof UI !== 'undefined') UI.updateBalance();
+    });
+  }
+
   function handleClick() {
     const value = getClickValue();
     STATE.balance += value;
     STATE.totalEarned += value;
-    clickTimestamps.push(Date.now()); // ghi timestamp cho CPS
-
-    // Update HUD ngay lập tức — không đợi tick 1 giây
-    // Tránh lag UI khi click nhanh
-    if (typeof UI !== 'undefined') UI.updateHUD();
-
+    clickTimestamps.push(Date.now());
+    _scheduleBalanceUpdate(); // smooth, không block main thread
     return value;
   }
 

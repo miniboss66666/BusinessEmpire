@@ -1,341 +1,266 @@
 /* ============================================
-   HOME.JS - Trang Home
+   ENGINE.JS - Income tick engine
+   Chạy mỗi 1 giây, tính tổng thu nhập
    ============================================ */
 
-const HomePage = (() => {
+const Engine = (() => {
 
-  const SKIN_DATA = [
-    { price: 0,          buff: 0,    name: 'Default' },
-    { price: 10000,      buff: 0.05, name: 'Onyx' },
-    { price: 50000,      buff: 0.1,  name: 'Bronze' },
-    { price: 250000,     buff: 0.15, name: 'Navy' },
-    { price: 1000000,    buff: 0.2,  name: 'Cosmos' },
-    { price: 5000000,    buff: 0.25, name: 'Obsidian' },
-    { price: 25000000,   buff: 0.3,  name: 'Emerald' },
-    { price: 100000000,  buff: 0.35, name: 'Gold II' },
-    { price: 500000000,  buff: 0.4,  name: 'Nebula' },
-    { price: 7000000000, buff: 0.5,  name: 'Gold MAX' },
+  let tickInterval = null;
+
+  // CPS tracking — lưu timestamp của các click gần đây
+  let clickTimestamps = [];
+
+  // ============================================
+  // DATA - Click power
+  // ============================================
+  const CLICK_LEVELS = [
+    null,
+    { value: 1,    price: 100 },
+    { value: 2,    price: 500 },
+    { value: 5,    price: 2000 },
+    { value: 10,   price: 8000 },
+    { value: 20,   price: 25000 },
+    { value: 35,   price: 75000 },
+    { value: 55,   price: 200000 },
+    { value: 80,   price: 500000 },
+    { value: 110,  price: 1000000 },
+    { value: 150,  price: 2000000 },
+    { value: 200,  price: 3500000 },
+    { value: 260,  price: 5000000 },
+    { value: 330,  price: 7000000 },
+    { value: 410,  price: 9000000 },
+    { value: 500,  price: 12000000 },
+    { value: 620,  price: 16000000 },
+    { value: 760,  price: 22000000 },
+    { value: 920,  price: 33000000 },
+    { value: 1200, price: 45000000 },
+    { value: 1500, price: 60000000 },
   ];
 
-  const SKIN_GRADIENTS = [
-    'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)',
-    'linear-gradient(135deg,#0d0d0d,#1a1a1a,#2d2d2d)',
-    'linear-gradient(135deg,#1a0a00,#3d1500,#7a2d00)',
-    'linear-gradient(135deg,#000428,#004e92)',
-    'linear-gradient(135deg,#0f0c29,#302b63,#24243e)',
-    'linear-gradient(135deg,#000000,#434343)',
-    'linear-gradient(135deg,#093028,#237a57)',
-    'linear-gradient(135deg,#1f1c18,#3d3520,#7a6c30)',
-    'linear-gradient(135deg,#0a0a0a,#1a0a2e,#2d0a5e)',
-    'linear-gradient(135deg,#000000,#c0a000,#ffd700)',
-  ];
+  // ============================================
+  // DATA - Card skin income buff
+  // ============================================
+  const SKIN_BUFF = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5];
 
-  let initialized = false;
-
-  function init() {
-    if (initialized) return;
-    initialized = true;
-    render();
+  // ============================================
+  // Income calculators
+  // ============================================
+  function getLemonadeIncome() {
+    const DATA = [
+      null,
+      { incomePerUnit: 1 },
+      { incomePerUnit: 10 },
+      { incomePerUnit: 100 },
+      { incomePerUnit: 1000 },
+      { incomePerUnit: 10000 },
+      { incomePerUnit: 100000 },
+      { incomePerUnit: 1000000 },
+      { incomePerUnit: 10000000 },
+    ];
+    const { level, owned } = STATE.business.lemonade;
+    return (DATA[level]?.incomePerUnit || 0) * owned;
   }
 
-  function render() {
-    const container = document.getElementById('page-home');
-    container.innerHTML = `
-      <button class="home-settings-btn" id="home-settings-btn" title="Cài đặt">⚙️</button>
-
-      <!-- Bank Card — click để chọn skin -->
-      <div class="bank-card skin-${STATE.cardSkin}" id="bank-card" title="Nhấn để đổi skin">
-        <div class="card-chip"></div>
-        <div class="card-balance-label">BALANCE</div>
-        <div class="card-balance" id="hud-balance">${Format.money(STATE.balance)}</div>
-        <div class="card-bottom">
-          <div class="card-name">${STATE.profile?.username || STATE.user?.email?.split('@')[0] || 'PLAYER'}</div>
-          <div class="card-visa">VISA</div>
-        </div>
-      </div>
-
-      <!-- Income/phút -->
-      <div class="income-display">
-        <div class="income-label">THU NHẬP</div>
-        <div class="income-value" id="hud-income">${Format.money(STATE.incomePerMin)}/phút</div>
-      </div>
-
-      <!-- Click Upgrade -->
-      <div class="click-upgrade" id="click-upgrade-box">
-        <div class="click-upgrade-info">
-          <div class="click-upgrade-title">⚡ Click Power — Lv.${STATE.clickLevel}</div>
-          <div class="click-upgrade-sub" id="click-upgrade-sub">${getClickUpgradeSub()}</div>
-        </div>
-        <button class="click-upgrade-btn" id="btn-click-upgrade"
-          ${State_clickMaxed() ? 'disabled' : ''}>
-          ${getClickUpgradeLabel()}
-        </button>
-      </div>
-
-      <!-- Click Zone -->
-      <div class="click-zone" id="click-zone">
-        <div class="click-zone-inner">
-          <span class="click-zone-icon">💰</span>
-          <div class="click-zone-label">NHẤN ĐỂ KIẾM TIỀN</div>
-          <div class="click-zone-value">+${Format.money(Engine.getClickValue())}/click</div>
-        </div>
-      </div>
-    `;
-
-    bindEvents();
-  }
-
-  function State_clickMaxed() { return STATE.clickLevel >= 20; }
-
-  function getClickUpgradeSub() {
-    if (State_clickMaxed()) return 'Đã đạt cấp tối đa!';
-    return `Lên Lv.${STATE.clickLevel + 1} — ${Format.money(Engine.getClickUpgradePrice())}`;
-  }
-
-  function getClickUpgradeLabel() {
-    return State_clickMaxed() ? 'MAX' : 'NÂNG CẤP';
-  }
-
-  function bindEvents() {
-    const zone = document.getElementById('click-zone');
-    zone?.addEventListener('click', (e) => {
-      const earned = Engine.handleClick();
-      spawnFloatText(e.clientX, e.clientY, '+' + Format.money(earned));
-      spawnRipple(zone, e);
-      updateClickZone();
-    });
-
-    document.getElementById('btn-click-upgrade')?.addEventListener('click', () => {
-      const success = Engine.upgradeClick();
-      if (success) {
-        updateClickUpgrade();
-        updateClickZone();
-        UI.toast('⚡ Click Power nâng cấp!', 'success');
-      } else if (!State_clickMaxed()) {
-        UI.toast('Không đủ tiền!', 'error');
-      }
-    });
-
-    // Click card → mở skin picker
-    document.getElementById('bank-card')?.addEventListener('click', openSkinPicker);
-
-    document.getElementById('home-settings-btn')?.addEventListener('click', openSettings);
-  }
-
-  function updateClickUpgrade() {
-    const title = document.querySelector('.click-upgrade-title');
-    const sub = document.getElementById('click-upgrade-sub');
-    const btn = document.getElementById('btn-click-upgrade');
-    if (title) title.textContent = `⚡ Click Power — Lv.${STATE.clickLevel}`;
-    if (sub) sub.textContent = getClickUpgradeSub();
-    if (btn) {
-      btn.textContent = getClickUpgradeLabel();
-      btn.disabled = State_clickMaxed();
-      if (State_clickMaxed()) btn.classList.add('maxed');
+  function getMarketIncome() {
+    const STORE_DATA = {
+      retail:      { sellPerMin: 2, sellPrice: 4, cost: 2 },
+      toy:         { sellPerMin: 4, sellPrice: 5, cost: 2 },
+      supermarket: { sellPerMin: 7, sellPrice: 6, cost: 2 },
+      pharmacy:    { sellPerMin: 2, sellPrice: 8, cost: 2 },
+      electronics: { sellPerMin: 4, sellPrice: 7, cost: 2 },
+    };
+    let total = 0;
+    const { stores } = STATE.business.market;
+    for (const [key, store] of Object.entries(stores)) {
+      const data = STORE_DATA[key];
+      if (!data || store.owned <= 0) continue;
+      const profitPerMin = (data.sellPrice - data.cost) * data.sellPerMin;
+      total += profitPerMin * store.owned * store.level;
     }
+    return total;
   }
 
-  function updateClickZone() {
-    const valEl = document.querySelector('.click-zone-value');
-    if (valEl) valEl.textContent = '+' + Format.money(Engine.getClickValue()) + '/click';
+  function getTransportIncome() {
+    const VEHICLE_DATA = {
+      shipper:    { incomePerMin: 5 },
+      taxi:       { incomePerMin: 15 },
+      ambulance:  { incomePerMin: 40 },
+      bus:        { incomePerMin: 60 },
+      firetruck:  { incomePerMin: 80 },
+      smalltruck: { incomePerMin: 50 },
+      container:  { incomePerMin: 150 },
+    };
+    const RAILWAY_DATA = {
+      tram:      { incomePerTrainPerMin: 200 },
+      metro:     { incomePerTrainPerMin: 500 },
+      freight:   { incomePerTrainPerMin: 800 },
+      oil:       { incomePerTrainPerMin: 1200 },
+      highspeed: { incomePerTrainPerMin: 2000 },
+    };
+    let total = 0;
+    const { vehicles, railways, hasApp } = STATE.business.transport;
+    const appMultiplier = hasApp ? 2 : 1;
+    for (const [key, count] of Object.entries(vehicles)) {
+      const data = VEHICLE_DATA[key];
+      if (!data || count <= 0) continue;
+      total += data.incomePerMin * count * appMultiplier;
+    }
+    for (const [key, rail] of Object.entries(railways)) {
+      const data = RAILWAY_DATA[key];
+      if (!data || rail.trains <= 0) continue;
+      total += data.incomePerTrainPerMin * rail.trains;
+    }
+    return total;
   }
 
-  function spawnFloatText(x, y, text) {
-    const el = document.createElement('div');
-    el.className = 'float-text';
-    el.textContent = text;
-    el.style.left = (x - 20) + 'px';
-    el.style.top = (y - 20) + 'px';
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 800);
-  }
+  function getRealEstateIncome() { return 0; }
 
-  function spawnRipple(zone, e) {
-    const rect = zone.getBoundingClientRect();
-    const ripple = document.createElement('div');
-    ripple.className = 'click-ripple';
-    const size = Math.max(rect.width, rect.height);
-    Object.assign(ripple.style, {
-      width: size + 'px', height: size + 'px',
-      left: (e.clientX - rect.left - size / 2) + 'px',
-      top: (e.clientY - rect.top - size / 2) + 'px',
-    });
-    zone.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 500);
-  }
-
-  // ============================================
-  // Skin Picker — mở khi click vào card
-  // ============================================
-  function openSkinPicker() {
-    UI.showModal(`
-      <div class="settings-modal">
-        <div class="settings-title">🎴 SKIN THẺ</div>
-        <div class="skin-grid" style="margin-top:8px">
-          ${SKIN_DATA.map((s, i) => `
-            <div>
-              <div class="skin-option ${STATE.cardSkin === i ? 'selected' : ''}
-                   ${!STATE.unlockedSkins.includes(i) ? 'skin-locked' : ''}"
-                   style="background:${SKIN_GRADIENTS[i]}"
-                   data-skin="${i}"></div>
-              <div class="skin-price" style="color:var(--text)">${s.name}</div>
-              <div class="skin-price">
-                ${STATE.unlockedSkins.includes(i)
-                  ? (i === 0 ? 'Free' : '<span style="color:var(--green)">✓ Đã có</span>')
-                  : Format.money(s.price)
-                }
-              </div>
-              ${s.buff > 0
-                ? `<div class="skin-price" style="color:var(--gold)">+${s.buff*100}% 💰</div>`
-                : '<div class="skin-price">—</div>'
-              }
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `);
-
-    document.querySelectorAll('.skin-option').forEach(el => {
-      el.addEventListener('click', () => {
-        const i = parseInt(el.dataset.skin);
-        if (!STATE.unlockedSkins.includes(i)) {
-          const price = SKIN_DATA[i].price;
-          if (STATE.balance < price) return UI.toast('Không đủ tiền!', 'error');
-          STATE.balance -= price;
-          STATE.unlockedSkins.push(i);
-          UI.toast(`🎴 Mở khóa ${SKIN_DATA[i].name}!`, 'success');
-        }
-        STATE.cardSkin = i;
-        document.getElementById('bank-card')?.setAttribute('class', `bank-card skin-${i}`);
-        document.querySelectorAll('.skin-option').forEach(s => s.classList.remove('selected'));
-        el.classList.add('selected');
-        Engine.recalcIncome();
-      });
-    });
+  function getPhoneIncome() {
+    const { y, tubeyou } = STATE.phone;
+    return Math.floor(y.followers / 1000) + Math.floor(tubeyou.subscribers / 1000);
   }
 
   // ============================================
-  // Settings Modal — không còn skin ở đây
+  // CPS - tính trong 3 giây gần nhất
   // ============================================
-  function openSettings() {
-    UI.showModal(`
-      <div class="settings-modal">
-        <div class="settings-title">⚙️ CÀI ĐẶT</div>
+  function getCPS() {
+    const now = Date.now();
+    const windowMs = 3000;
+    clickTimestamps = clickTimestamps.filter(t => now - t < windowMs);
+    return clickTimestamps.length / (windowMs / 1000);
+  }
 
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Giao diện</div>
-            <div class="settings-sub">Sáng / Tối</div>
-          </div>
-          <div class="toggle ${STATE.settings.theme === 'light' ? 'on' : ''}" id="theme-toggle"></div>
-        </div>
+  function getClickIncomePerMin() {
+    return getCPS() * getClickValue() * 60;
+  }
 
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Format số</div>
-            <div class="settings-sub">K/M/B hoặc khoa học</div>
-          </div>
-          <select class="format-select" id="format-select">
-            <option value="shorthand" ${STATE.settings.numberFormat === 'shorthand' ? 'selected' : ''}>K/M/B/T</option>
-            <option value="scientific" ${STATE.settings.numberFormat === 'scientific' ? 'selected' : ''}>e9/e10</option>
-          </select>
-        </div>
+  // ============================================
+  // Passive income (dùng cho tick + offline earn)
+  // ============================================
+  function calcPassiveIncomePerMin() {
+    let total = 0;
+    total += getLemonadeIncome();
+    total += getMarketIncome();
+    total += getTransportIncome();
+    total += getRealEstateIncome();
+    total += getPhoneIncome();
+    const skinBuff = SKIN_BUFF[STATE.cardSkin] || 0;
+    total *= (1 + skinBuff);
+    return total;
+  }
 
-        <div class="settings-row">
-          <div class="settings-label">🎟️ Redeem Code</div>
-          <button class="click-upgrade-btn" onclick="Redeem.openModal()">NHẬP MÃ</button>
-        </div>
+  // ============================================
+  // Total income/phút = passive + click realtime
+  // ============================================
+  function calcTotalIncomePerMin() {
+    return calcPassiveIncomePerMin() + getClickIncomePerMin();
+  }
 
-        <div class="settings-row">
-          <div class="settings-label">🚪 Đăng xuất</div>
-          <button class="click-upgrade-btn" style="border-color:var(--red);color:var(--red)"
-                  onclick="Auth.logout()">LOGOUT</button>
-        </div>
+  // ============================================
+  // Click
+  // ============================================
+  function getClickValue() {
+    return CLICK_LEVELS[STATE.clickLevel]?.value || 1;
+  }
 
-        <div class="settings-row">
-          <div>
-            <div class="settings-label" style="color:var(--red)">⚠️ Reset tài khoản</div>
-            <div class="settings-sub">Xóa toàn bộ tiến trình</div>
-          </div>
-          <button class="click-upgrade-btn" style="border-color:var(--red);color:var(--red)"
-                  onclick="confirmReset()">RESET</button>
-        </div>
+  function getClickUpgradePrice() {
+    const nextLvl = STATE.clickLevel + 1;
+    if (nextLvl > 20) return null;
+    return CLICK_LEVELS[nextLvl]?.price || null;
+  }
 
-        <!-- Version -->
-        <div style="text-align:center;padding-top:4px">
-          <span style="font-family:'Orbitron',monospace;font-size:0.65rem;
-                       color:var(--text-dim);letter-spacing:2px;opacity:0.5">
-            BUSINESS EMPIRE v${CONFIG.VERSION}
-          </span>
-        </div>
-      </div>
-    `);
-
-    document.getElementById('theme-toggle')?.addEventListener('click', function() {
-      UI.toggleTheme();
-      this.classList.toggle('on');
-    });
-
-    document.getElementById('format-select')?.addEventListener('change', function() {
-      STATE.settings.numberFormat = this.value;
+  // rAF batch — chỉ update balance 1 lần/frame dù click bao nhiêu
+  let _rafPending = false;
+  function _scheduleBalanceUpdate() {
+    if (_rafPending) return;
+    _rafPending = true;
+    requestAnimationFrame(() => {
+      _rafPending = false;
+      if (typeof UI !== 'undefined') UI.updateBalance();
     });
   }
 
+  function handleClick() {
+    const value = getClickValue();
+    STATE.balance += value;
+    STATE.totalEarned += value;
+    clickTimestamps.push(Date.now());
+    _scheduleBalanceUpdate(); // smooth, không block main thread
+    return value;
+  }
+
+  function upgradeClick() {
+    const price = getClickUpgradePrice();
+    if (price === null) return false;
+    if (STATE.balance < price) return false;
+    STATE.balance -= price;
+    STATE.clickLevel++;
+    return true;
+  }
+
   // ============================================
-  // Reset với mã xác nhận
+  // Tick (mỗi 1 giây)
   // ============================================
-  window.confirmReset = function() {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    let countdown = 5;
+  function tick() {
+    // Chỉ cộng passive vào balance — click đã cộng trực tiếp khi ấn
+    const passivePerSec = STATE.passiveIncomePerMin / 60;
+    STATE.balance += passivePerSec;
+    STATE.totalEarned += passivePerSec;
+    STATE.stats.playTime += CONFIG.GAME_TICK_MS;
 
-    UI.showModal(`
-      <div style="text-align:center">
-        <div style="font-size:2rem;margin-bottom:12px">⚠️</div>
-        <div style="font-family:'Orbitron',monospace;font-size:0.9rem;
-                    color:var(--red);margin-bottom:12px">RESET TÀI KHOẢN</div>
-        <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:16px">
-          Toàn bộ tiến trình sẽ bị xóa vĩnh viễn!<br>
-          Nhập mã xác nhận để tiếp tục:
-        </p>
-        <div style="font-family:'Orbitron',monospace;font-size:1.4rem;
-                    font-weight:700;color:var(--gold);margin-bottom:12px;
-                    letter-spacing:4px">${code}</div>
-        <input type="text" id="reset-code-input" placeholder="Nhập mã xác nhận"
-               style="width:100%;padding:10px;background:var(--bg3);
-                      border:1px solid var(--border2);border-radius:8px;
-                      color:var(--text);font-family:'Orbitron',monospace;
-                      font-size:1rem;text-align:center;letter-spacing:3px;
-                      margin-bottom:12px;outline:none"/>
-        <button class="btn-primary" id="btn-confirm-reset" disabled
-                style="background:var(--red-dark)">
-          XÁC NHẬN (<span id="reset-countdown">${countdown}</span>s)
-        </button>
-        <button onclick="UI.closeModal()"
-                style="margin-top:8px;width:100%;padding:10px;background:transparent;
-                       border:1px solid var(--border);border-radius:8px;
-                       color:var(--text-dim);cursor:pointer">HỦY</button>
-      </div>
-    `);
+    // Suspicion tự giảm
+    if (!STATE.underground.isLaundering && STATE.underground.suspicion > 0) {
+      STATE.underground.suspicion = Math.max(
+        0,
+        STATE.underground.suspicion - (1 / 120)
+      );
+    }
 
-    const timer = setInterval(() => {
-      countdown--;
-      const cdEl = document.getElementById('reset-countdown');
-      const btn = document.getElementById('btn-confirm-reset');
-      if (cdEl) cdEl.textContent = countdown;
-      if (countdown <= 0) {
-        clearInterval(timer);
-        if (btn) { btn.disabled = false; btn.textContent = 'XÁC NHẬN RESET'; }
-      }
-    }, 1000);
+    // Recalc (cập nhật CPS mới nhất vào incomePerMin)
+    recalcIncome();
 
-    document.getElementById('btn-confirm-reset')?.addEventListener('click', async () => {
-      const input = document.getElementById('reset-code-input')?.value.toUpperCase();
-      if (input !== code) return UI.toast('Mã không đúng!', 'error');
-      await Save.resetSave();
-      location.reload();
-    });
+    if (typeof UI !== 'undefined') UI.updateHUD();
+  }
+
+  // ============================================
+  // Start / Stop
+  // ============================================
+  function start() {
+    if (tickInterval) return;
+    recalcIncome();
+    tickInterval = setInterval(tick, CONFIG.GAME_TICK_MS);
+    console.log('[Engine] Started');
+  }
+
+  function stop() {
+    if (tickInterval) {
+      clearInterval(tickInterval);
+      tickInterval = null;
+    }
+    console.log('[Engine] Stopped');
+  }
+
+  function recalcIncome() {
+    STATE.passiveIncomePerMin = calcPassiveIncomePerMin();
+    STATE.incomePerMin = calcTotalIncomePerMin(); // passive + click
+  }
+
+  // ============================================
+  // Public API
+  // ============================================
+  return {
+    start,
+    stop,
+    recalcIncome,
+    handleClick,
+    upgradeClick,
+    getClickValue,
+    getClickUpgradePrice,
+    getCPS,
+    getClickIncomePerMin,
+    calcTotalIncomePerMin,
+    calcPassiveIncomePerMin,
+    CLICK_LEVELS,
   };
-
-  return { init, render, openSkinPicker };
 
 })();

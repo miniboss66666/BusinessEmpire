@@ -28,10 +28,15 @@ const UI = (() => {
   // HUD update (balance + income)
   // Được gọi mỗi tick từ engine
   // ============================================
-  function updateHUD() {
-    // Balance trên card
+  function updateBalance() {
+    // Chỉ update balance — gọi mỗi click qua rAF
     const balanceEl = document.getElementById('hud-balance');
     if (balanceEl) balanceEl.textContent = Format.money(STATE.balance);
+  }
+
+  function updateHUD() {
+    // Balance trên card
+    updateBalance();
 
     // Income/phút
     const incomeEl = document.getElementById('hud-income');
@@ -100,6 +105,7 @@ const UI = (() => {
   return {
     showModal,
     closeModal,
+    updateBalance,
     updateHUD,
     toast,
     setTheme,
