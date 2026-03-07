@@ -1,5 +1,5 @@
 /* ============================================
-   CASINO/HORSE.JS — 7 con ngựa, 10 giây
+   CASINO/HORSE.JS — 7 con ngựa, kịch tính
    ============================================ */
 
 const CasinoHorse = (() => {
@@ -14,16 +14,39 @@ const CasinoHorse = (() => {
     {name:'👑 King',    color:'#ffd700'},
   ];
 
-  const FINISH = 78; // % — vị trí vạch đích
+  const FINISH = 78; // % track
 
   let state={
     phase:'idle', betHorse:null, bet:0, interval:null,
-    positions:new Array(7).fill(0), speeds:[], odds:[],
-    winner:-1, finished:[],
+    positions: new Array(7).fill(0),
+    // Mỗi con ngựa có state riêng
+    horses: [], // [{speed, targetSpeed, burstTimer, restTimer, stamina}]
+    odds: [],
+    winner: -1,
+    finished: [],
   };
 
   function randomOdds() {
     return HORSES.map(()=>parseFloat((1.3+Math.random()*5).toFixed(1)));
+  }
+
+  // Khởi tạo "tính cách" mỗi con ngựa
+  function initHorseStates() {
+    state.horses = HORSES.map((_, i) => {
+      const baseSpeed = 0.04 + Math.random() * 0.04; // tốc độ nền
+      return {
+        speed:       baseSpeed,
+        targetSpeed: baseSpeed,
+        baseSpeed,
+        // Stamina: con có stamina cao thì cuối đường về mạnh hơn
+        stamina:     0.3 + Math.random() * 0.7,
+        // Burst: đếm ngược đến lần bứt tốc tiếp theo
+        burstCooldown: Math.random() * 30,
+        // Đang trong trạng thái nào
+        mode: 'normal', // 'normal' | 'burst' | 'tired'
+        modeTicks: 0,
+      };
+    });
   }
 
   function renderHTML() {
@@ -82,7 +105,7 @@ const CasinoHorse = (() => {
     state.finished=[];
     state.winner=-1;
 
-    // Odds mới mỗi lần đua
+    // Odds mới
     state.odds=randomOdds();
     HORSES.forEach((_,i)=>{
       const el=document.getElementById('horse-odds-'+i);
@@ -91,8 +114,7 @@ const CasinoHorse = (() => {
       if(pk) pk.textContent='×'+state.odds[i];
     });
 
-    // Tốc độ: random + bias nhẹ theo odds (odds thấp = hơi nhanh hơn)
-    state.speeds=state.odds.map(o=>(1/o)*0.65 + Math.random()*0.10 + 0.045);
+    initHorseStates();
 
     document.getElementById('horse-result').className='casino-result';
     document.querySelectorAll('.horse-pick-btn').forEach(b=>b.disabled=true);
@@ -104,32 +126,78 @@ const CasinoHorse = (() => {
   }
 
   function tick() {
-    let remaining=0; // số con chưa về đích
+    const progress = Math.max(...state.positions) / FINISH; // 0→1 tiến độ chung
 
     for(let i=0;i<7;i++){
-      if(state.positions[i]>=FINISH) continue; // đã về rồi
-      remaining++;
+      if(state.positions[i]>=FINISH) continue;
 
-      state.positions[i]+=state.speeds[i];
+      const h=state.horses[i];
+
+      // ── Cập nhật mode ──────────────────────────
+      h.modeTicks--;
+      if(h.modeTicks<=0){
+        h.burstCooldown--;
+        if(h.burstCooldown<=0){
+          // Quyết định mode tiếp theo
+          const roll=Math.random();
+
+          if(roll<0.35){
+            // BURST — bứt tốc!
+            h.mode='burst';
+            h.modeTicks = 8 + Math.floor(Math.random()*12); // 0.6–1.6 giây
+            h.targetSpeed = h.baseSpeed * (1.8 + Math.random()*1.2);
+            h.burstCooldown = 15 + Math.floor(Math.random()*20);
+          } else if(roll<0.55){
+            // TIRED — hụt hơi
+            h.mode='tired';
+            h.modeTicks = 10 + Math.floor(Math.random()*15);
+            h.targetSpeed = h.baseSpeed * (0.3 + Math.random()*0.3);
+            h.burstCooldown = 8 + Math.floor(Math.random()*12);
+          } else {
+            // NORMAL
+            h.mode='normal';
+            h.modeTicks = 5 + Math.floor(Math.random()*10);
+            h.targetSpeed = h.baseSpeed * (0.8 + Math.random()*0.5);
+            h.burstCooldown = 5 + Math.floor(Math.random()*10);
+          }
+        }
+      }
+
+      // Cuối đường — stamina cao thì bứt phá, thấp thì chậm lại
+      if(progress > 0.75){
+        if(h.stamina>0.6 && h.mode!=='burst'){
+          h.mode='burst';
+          h.targetSpeed=h.baseSpeed*(1.5+h.stamina*0.8);
+        } else if(h.stamina<0.4 && h.mode!=='tired'){
+          h.mode='tired';
+          h.targetSpeed=h.baseSpeed*0.4;
+        }
+      }
+
+      // Smooth acceleration / deceleration
+      const accel = h.mode==='burst' ? 0.012 : 0.008;
+      if(h.speed < h.targetSpeed) h.speed = Math.min(h.speed+accel, h.targetSpeed);
+      else                        h.speed = Math.max(h.speed-accel, h.targetSpeed);
+
+      // Tiny noise để trông tự nhiên
+      const noise = (Math.random()-0.5)*0.008;
+
+      state.positions[i] += Math.max(0.005, h.speed + noise);
 
       if(state.positions[i]>=FINISH){
-        // Con này vừa về đích
         state.positions[i]=FINISH;
         state.finished.push(i);
-
         const rank=state.finished.length;
         if(rank===1) state.winner=i;
-
         const el=document.getElementById('horse-'+i);
         if(el) el.textContent = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'✅';
-        remaining--; // không còn là "chưa về"
       }
 
       const el=document.getElementById('horse-'+i);
       if(el) el.style.left=state.positions[i]+'%';
     }
 
-    // Kết thúc khi TẤT CẢ 7 con đã về đích
+    // Kết thúc khi tất cả về đích
     if(state.finished.length===7){
       clearInterval(state.interval);
       finish();
@@ -160,13 +228,10 @@ const CasinoHorse = (() => {
       b.disabled=false; b.classList.remove('selected');
     });
 
-    // Reset vị trí sau 3 giây
     setTimeout(()=>{
-      state.betHorse=null;
-      state.phase='idle';
+      state.betHorse=null; state.phase='idle';
       state.positions=new Array(7).fill(0);
-      state.finished=[];
-      state.winner=-1;
+      state.finished=[]; state.winner=-1;
       state.odds=randomOdds();
       for(let i=0;i<7;i++){
         const el=document.getElementById('horse-'+i);
