@@ -712,3 +712,210 @@
 }
 .rail-multi-btn:hover:not(:disabled) { background:#4cc9f0; color:#000; }
 .rail-multi-btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+/* ════════════════════════════════════════════
+   DASHBOARD CARDS
+   ════════════════════════════════════════════ */
+.biz-dash-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.biz-dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.biz-dash-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 1px;
+}
+
+.biz-dash-income {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.biz-dash-income-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.biz-card-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Business card */
+.biz-card {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s;
+}
+
+.biz-card:hover { border-color: var(--gold); }
+.biz-card-soon { opacity: 0.5; }
+.biz-card-soon:hover { border-color: var(--border2); }
+
+.biz-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.biz-card-emoji { font-size: 2.2rem; line-height: 1; flex-shrink: 0; }
+
+.biz-card-info { flex: 1; }
+
+.biz-card-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+.biz-card-desc {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+
+.biz-card-tax-badge {
+  position: absolute;
+  top: 0; right: 0;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #f4a030;
+  background: rgba(244,160,48,0.12);
+  border: 1px solid rgba(244,160,48,0.3);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+
+/* Stats inside card */
+.biz-card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--bg3);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+
+.biz-card-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+}
+
+.biz-card-stat-lbl { color: var(--text-dim); font-weight: 600; }
+.biz-card-stat-val { color: var(--text); font-weight: 700; }
+.biz-card-stat-val.green { color: var(--green); }
+
+/* Manage button */
+.biz-card-manage-btn {
+  width: 100%;
+  padding: 11px;
+  background: linear-gradient(135deg, var(--gold-dark), #b8860b);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  color: var(--gold);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+
+.biz-card-manage-btn:hover:not(:disabled) {
+  background: var(--gold);
+  color: #000;
+  box-shadow: 0 4px 14px rgba(212,175,55,0.25);
+}
+
+.biz-card-manage-btn.disabled,
+.biz-card-manage-btn:disabled {
+  background: var(--bg3);
+  border-color: var(--border);
+  color: var(--text-dim);
+  cursor: not-allowed;
+}
+
+/* ── Detail view ── */
+.biz-detail-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.biz-detail-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+
+.biz-back-btn {
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.biz-back-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+.biz-detail-title {
+  flex: 1;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  text-align: center;
+}
+
+.biz-detail-income {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--green);
+  white-space: nowrap;
+}
+
+.biz-detail-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
