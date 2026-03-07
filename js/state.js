@@ -12,7 +12,8 @@ const STATE = {
   balance: 0,           // Tiền sạch hiện tại
   dirtyMoney: 0,        // Tiền bẩn (underground)
   totalEarned: 0,       // Tổng tiền kiếm được all-time
-  incomePerMin: 0,      // Thu nhập/phút (tính lại mỗi tick)
+  incomePerMin: 0,      // Thu nhập/phút tổng (passive + click realtime)
+  passiveIncomePerMin: 0, // Thu nhập/phút chỉ passive (dùng cho tick + offline)
 
   // --- Click ---
   clickLevel: 1,        // Level click power (1-20)

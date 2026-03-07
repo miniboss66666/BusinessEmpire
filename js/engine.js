@@ -174,6 +174,11 @@ const Engine = (() => {
     STATE.balance += value;
     STATE.totalEarned += value;
     clickTimestamps.push(Date.now()); // ghi timestamp cho CPS
+
+    // Update HUD ngay lập tức — không đợi tick 1 giây
+    // Tránh lag UI khi click nhanh
+    if (typeof UI !== 'undefined') UI.updateHUD();
+
     return value;
   }
 
