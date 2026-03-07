@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* ============================================
    PROFILE.JS — Profile + Leaderboard
    + Upload ảnh thật (Supabase Storage)
@@ -45,7 +46,7 @@ const ProfilePage = (() => {
       </div>
     `;
     bindEvents();
-    if (_tab === 'leaderboard' && _leaderboardData.length === 0) loadLeaderboard();
+    if (_tab === 'leaderboard') loadLeaderboard(); // Luôn reload khi ấn tab
   }
 
   // ═══════════════════════════════════════════
@@ -182,8 +183,132 @@ const ProfilePage = (() => {
 
         <!-- ── CASINO STATS ── -->
         ${isOwn ? renderCasinoStats() : ''}
+
+        <!-- ── THUẾ ── -->
+        ${isOwn ? renderTaxButton() : ''}
       </div>
     `;
+  }
+
+  function renderTaxButton() {
+    const tax = STATE.tax || { items: [] };
+    const totalOwed = (tax.items || []).reduce((s, i) => s + (i.amount || 0), 0);
+    const suspended = (tax.items || []).filter(i => i.suspended).length;
+    return `
+      <div class="profile-section">
+        <div class="profile-section-title">💸 Thuế</div>
+        <div class="tax-summary-row">
+          <div class="tax-summary-item">
+            <span class="tax-sum-lbl">Nợ thuế</span>
+            <span class="tax-sum-val" style="color:${totalOwed > 0 ? 'var(--red)' : 'var(--green)'}">${Format.money(totalOwed)}</span>
+          </div>
+          <div class="tax-summary-item">
+            <span class="tax-sum-lbl">Đình chỉ</span>
+            <span class="tax-sum-val" style="color:${suspended > 0 ? 'var(--red)' : 'var(--text-dim)'}">${suspended} business</span>
+          </div>
+        </div>
+        <button class="tax-manage-btn" id="btn-open-tax">💸 QUẢN LÝ THUẾ</button>
+      </div>
+    `;
+  }
+
+  function openTaxModal() {
+    const tax = STATE.tax || { items: [] };
+    const items = tax.items || [];
+    const totalOwed = items.reduce((s, i) => s + (i.amount || 0), 0);
+    const rate = tax.serverRate || { business: 0.083, realestate: 0.012 };
+
+    UI.showModal(`
+      <div class="tax-modal">
+        <div class="tax-modal-title">💸 QUẢN LÝ THUẾ</div>
+        <div class="tax-modal-sub">
+          Rate: Business ${(rate.business*100).toFixed(1)}%/phút · BĐS ${(rate.realestate*100).toFixed(1)}%/phút
+        </div>
+
+        ${items.length === 0 ? `
+          <div class="tax-empty">✅ Không có khoản thuế nào đang nợ</div>
+        ` : `
+          <div class="tax-item-list" id="tax-item-list">
+            ${items.map((item, idx) => `
+              <div class="tax-item ${item.suspended ? 'suspended' : ''}">
+                <div class="tax-item-left">
+                  <div class="tax-item-name">
+                    ${item.type === 'business' ? '💼' : '🏢'} ${item.name}
+                    ${item.suspended ? '<span class="tax-suspended-tag">⛔ ĐÌNH CHỈ</span>' : ''}
+                  </div>
+                  <div class="tax-item-meta">
+                    ${item.deadline ? _timeUntilDeadline(item.deadline) : ''}
+                  </div>
+                </div>
+                <div class="tax-item-right">
+                  <div class="tax-item-amount">${Format.money(item.amount)}</div>
+                  <button class="tax-pay-one-btn" data-idx="${idx}"
+                          ${STATE.balance < item.amount ? 'disabled' : ''}>
+                    Nộp
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+
+        <!-- Sticky bottom -->
+        <div class="tax-modal-footer">
+          <div class="tax-footer-total">
+            <span>Tổng nợ:</span>
+            <span style="color:var(--red);font-weight:700">${Format.money(totalOwed)}</span>
+          </div>
+          ${totalOwed > 0 ? `
+          <button class="tax-pay-all-btn" id="btn-tax-pay-all"
+                  ${STATE.balance < totalOwed ? 'disabled' : ''}>
+            💸 NỘP TẤT CẢ — ${Format.money(totalOwed)}
+          </button>
+          ${STATE.balance < totalOwed ? `
+          <div class="tax-cant-afford">Không đủ tiền — cần thêm ${Format.money(totalOwed - STATE.balance)}</div>
+          ` : ''}` : ''}
+        </div>
+      </div>
+    `);
+
+    // Bind nộp từng cái
+    document.querySelectorAll('.tax-pay-one-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        const item = items[idx];
+        if (!item || STATE.balance < item.amount) return;
+        STATE.balance -= item.amount;
+        item.amount = 0;
+        item.suspended = false;
+        item.deadline = Date.now() + 72 * 3600 * 1000; // reset 72h
+        UI.toast(`✅ Đã nộp thuế: ${item.name}`, 'success');
+        UI.closeModal();
+        openTaxModal(); // re-open để cập nhật
+      });
+    });
+
+    // Nộp tất cả
+    document.getElementById('btn-tax-pay-all')?.addEventListener('click', () => {
+      if (STATE.balance < totalOwed) return;
+      STATE.balance -= totalOwed;
+      items.forEach(item => {
+        item.amount = 0;
+        item.suspended = false;
+        item.deadline = Date.now() + 72 * 3600 * 1000;
+      });
+      UI.toast('✅ Đã nộp toàn bộ thuế!', 'success');
+      UI.closeModal();
+      // Re-render profile section thuế
+      document.getElementById('btn-open-tax')?.closest('.profile-section')?.remove();
+    });
+  }
+
+  function _timeUntilDeadline(deadline) {
+    const ms = deadline - Date.now();
+    if (ms <= 0) return '<span style="color:var(--red)">⛔ Đã quá hạn</span>';
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const color = h < 12 ? 'var(--red)' : h < 24 ? 'var(--gold)' : 'var(--text-dim)';
+    return `<span style="color:${color}">⏱ Còn ${h}h ${m}m</span>`;
   }
 
   function renderCasinoStats() {
@@ -213,6 +338,10 @@ const ProfilePage = (() => {
   function renderLeaderboardTab() {
     return `
       <div class="leaderboard-wrap">
+        <div class="leaderboard-topbar">
+          <span class="lb-title">🏆 XẾP HẠNG</span>
+          <button class="lb-refresh-btn" id="btn-lb-refresh">🔄</button>
+        </div>
         <div class="leaderboard-header">
           <div class="lb-col rank">Hạng</div>
           <div class="lb-col name">Người Chơi</div>
@@ -255,25 +384,60 @@ const ProfilePage = (() => {
   // ═══════════════════════════════════════════
   async function loadLeaderboard() {
     _loading = true;
+    // Show loading spinner ngay
+    const el = document.getElementById('lb-list');
+    if (el) el.innerHTML = '<div class="lb-loading"><div class="lb-spinner"></div><span>Đang tải...</span></div>';
+
     try {
+      // Bước 1: Save data người dùng hiện tại trước để có data mới nhất
+      if (STATE.user?.id) await Save.saveToCloud();
+
+      // Bước 2: Query saves join profiles
       const { data, error } = await DB
         .from('saves')
-        .select(`user_id, data->totalEarned, profiles!inner(username, avatar_url)`)
-        .order('data->totalEarned', { ascending: false })
-        .limit(100);
+        .select('user_id, data, profiles(username, avatar_url)')
+        .limit(200);
+
       if (error) throw error;
-      _leaderboardData = (data||[]).map(row => ({
-        user_id:      row.user_id,
-        username:     row.profiles?.username || 'Ẩn danh',
-        avatar_url:   row.profiles?.avatar_url || '',
-        total_earned: Number(row.totalEarned) || 0,
-      }));
+
+      // Bước 3: Parse totalEarned từ jsonb data field
+      _leaderboardData = (data || [])
+        .map(row => {
+          let earned = 0;
+          try {
+            const d = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+            earned = Number(d?.totalEarned) || 0;
+          } catch(e) {}
+          return {
+            user_id:      row.user_id,
+            username:     row.profiles?.username || 'Ẩn danh',
+            avatar_url:   row.profiles?.avatar_url || '',
+            total_earned: earned,
+          };
+        })
+        .filter(r => r.total_earned > 0) // bỏ account chưa kiếm gì
+        .sort((a, b) => b.total_earned - a.total_earned)
+        .slice(0, 100);
+
+      // Bước 4: Nếu mình không có trong list (totalEarned = 0) thì thêm vào cuối
+      if (STATE.user?.id) {
+        const inList = _leaderboardData.find(r => r.user_id === STATE.user.id);
+        if (!inList && STATE.totalEarned > 0) {
+          _leaderboardData.push({
+            user_id:      STATE.user.id,
+            username:     STATE.profile?.username || 'Ẩn danh',
+            avatar_url:   STATE.profile?.avatar_url || '',
+            total_earned: STATE.totalEarned || 0,
+          });
+          _leaderboardData.sort((a,b) => b.total_earned - a.total_earned);
+        }
+      }
+
     } catch (err) {
       console.warn('Leaderboard error:', err);
       _leaderboardData = [];
     }
     _loading = false;
-    const el = document.getElementById('lb-list');
     if (el) { el.innerHTML = renderLeaderboardRows(); bindLeaderboardEvents(); }
   }
 
@@ -519,9 +683,15 @@ const ProfilePage = (() => {
     bindAvatarUpload();
     bindLeaderboardEvents();
     bindBackBtn();
+    // Tax button
+    document.getElementById('btn-open-tax')?.addEventListener('click', openTaxModal);
   }
 
   function bindLeaderboardEvents() {
+    document.getElementById('btn-lb-refresh')?.addEventListener('click', () => {
+      _leaderboardData = [];
+      loadLeaderboard();
+    });
     document.querySelectorAll('.lb-row').forEach(row => {
       row.addEventListener('click', () => {
         const uid = row.dataset.uid;
