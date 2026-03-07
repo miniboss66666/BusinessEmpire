@@ -7,11 +7,14 @@ const Engine = (() => {
 
   let tickInterval = null;
 
+  // CPS tracking — lưu timestamp của các click gần đây
+  let clickTimestamps = [];
+
   // ============================================
   // DATA - Click power
   // ============================================
   const CLICK_LEVELS = [
-    null, // index 0 unused
+    null,
     { value: 1,    price: 100 },
     { value: 2,    price: 500 },
     { value: 5,    price: 2000 },
@@ -31,7 +34,7 @@ const Engine = (() => {
     { value: 760,  price: 22000000 },
     { value: 920,  price: 33000000 },
     { value: 1200, price: 45000000 },
-    { value: 1500, price: 60000000 }, // max level 20
+    { value: 1500, price: 60000000 },
   ];
 
   // ============================================
@@ -42,7 +45,6 @@ const Engine = (() => {
   // ============================================
   // Income calculators
   // ============================================
-
   function getLemonadeIncome() {
     const DATA = [
       null,
@@ -67,10 +69,8 @@ const Engine = (() => {
       pharmacy:    { sellPerMin: 2, sellPrice: 8, cost: 2 },
       electronics: { sellPerMin: 4, sellPrice: 7, cost: 2 },
     };
-
     let total = 0;
     const { stores } = STATE.business.market;
-
     for (const [key, store] of Object.entries(stores)) {
       const data = STORE_DATA[key];
       if (!data || store.owned <= 0) continue;
@@ -97,75 +97,75 @@ const Engine = (() => {
       oil:       { incomePerTrainPerMin: 1200 },
       highspeed: { incomePerTrainPerMin: 2000 },
     };
-
     let total = 0;
     const { vehicles, railways, hasApp } = STATE.business.transport;
     const appMultiplier = hasApp ? 2 : 1;
-
     for (const [key, count] of Object.entries(vehicles)) {
       const data = VEHICLE_DATA[key];
       if (!data || count <= 0) continue;
       total += data.incomePerMin * count * appMultiplier;
     }
-
     for (const [key, rail] of Object.entries(railways)) {
       const data = RAILWAY_DATA[key];
       if (!data || rail.trains <= 0) continue;
       total += data.incomePerTrainPerMin * rail.trains;
     }
-
     return total;
   }
 
-  function getRealEstateIncome() {
-    // Placeholder — sẽ implement sau khi có data BĐS đầy đủ
-    return 0;
-  }
+  function getRealEstateIncome() { return 0; }
 
   function getPhoneIncome() {
     const { y, tubeyou } = STATE.phone;
-    const yIncome = Math.floor(y.followers / 1000);
-    const tubeIncome = Math.floor(tubeyou.subscribers / 1000);
-    return yIncome + tubeIncome;
-  }
-
-  function getUndergroundIncome() {
-    // Tiền bẩn — không cộng vào balance trực tiếp
-    return 0;
+    return Math.floor(y.followers / 1000) + Math.floor(tubeyou.subscribers / 1000);
   }
 
   // ============================================
-  // Tính tổng income/phút
+  // CPS - tính trong 3 giây gần nhất
   // ============================================
-  function calcTotalIncomePerMin() {
+  function getCPS() {
+    const now = Date.now();
+    const windowMs = 3000;
+    clickTimestamps = clickTimestamps.filter(t => now - t < windowMs);
+    return clickTimestamps.length / (windowMs / 1000);
+  }
+
+  function getClickIncomePerMin() {
+    return getCPS() * getClickValue() * 60;
+  }
+
+  // ============================================
+  // Passive income (dùng cho tick + offline earn)
+  // ============================================
+  function calcPassiveIncomePerMin() {
     let total = 0;
     total += getLemonadeIncome();
     total += getMarketIncome();
     total += getTransportIncome();
     total += getRealEstateIncome();
     total += getPhoneIncome();
-
-    // Buff từ card skin
     const skinBuff = SKIN_BUFF[STATE.cardSkin] || 0;
     total *= (1 + skinBuff);
-
-    // Knowledge buffs (sẽ expand sau)
-    // total *= getKnowledgeBuff();
-
     return total;
+  }
+
+  // ============================================
+  // Total income/phút = passive + click realtime
+  // ============================================
+  function calcTotalIncomePerMin() {
+    return calcPassiveIncomePerMin() + getClickIncomePerMin();
   }
 
   // ============================================
   // Click
   // ============================================
   function getClickValue() {
-    const lvl = STATE.clickLevel;
-    return CLICK_LEVELS[lvl]?.value || 1;
+    return CLICK_LEVELS[STATE.clickLevel]?.value || 1;
   }
 
   function getClickUpgradePrice() {
     const nextLvl = STATE.clickLevel + 1;
-    if (nextLvl > 20) return null; // maxed
+    if (nextLvl > 20) return null;
     return CLICK_LEVELS[nextLvl]?.price || null;
   }
 
@@ -173,13 +173,14 @@ const Engine = (() => {
     const value = getClickValue();
     STATE.balance += value;
     STATE.totalEarned += value;
+    clickTimestamps.push(Date.now()); // ghi timestamp cho CPS
     return value;
   }
 
   function upgradeClick() {
     const price = getClickUpgradePrice();
-    if (price === null) return false; // maxed
-    if (STATE.balance < price) return false; // không đủ tiền
+    if (price === null) return false;
+    if (STATE.balance < price) return false;
     STATE.balance -= price;
     STATE.clickLevel++;
     return true;
@@ -189,21 +190,23 @@ const Engine = (() => {
   // Tick (mỗi 1 giây)
   // ============================================
   function tick() {
-    const incomePerSec = STATE.incomePerMin / 60;
-
-    STATE.balance += incomePerSec;
-    STATE.totalEarned += incomePerSec;
+    // Chỉ cộng passive vào balance — click đã cộng trực tiếp khi ấn
+    const passivePerSec = STATE.passiveIncomePerMin / 60;
+    STATE.balance += passivePerSec;
+    STATE.totalEarned += passivePerSec;
     STATE.stats.playTime += CONFIG.GAME_TICK_MS;
 
-    // Suspicion tự giảm khi không rửa tiền
+    // Suspicion tự giảm
     if (!STATE.underground.isLaundering && STATE.underground.suspicion > 0) {
       STATE.underground.suspicion = Math.max(
         0,
-        STATE.underground.suspicion - (1 / 120) // -1% mỗi 2 phút
+        STATE.underground.suspicion - (1 / 120)
       );
     }
 
-    // Update UI
+    // Recalc (cập nhật CPS mới nhất vào incomePerMin)
+    recalcIncome();
+
     if (typeof UI !== 'undefined') UI.updateHUD();
   }
 
@@ -212,15 +215,8 @@ const Engine = (() => {
   // ============================================
   function start() {
     if (tickInterval) return;
-
-    // Tính income trước khi start
     recalcIncome();
-
-    tickInterval = setInterval(() => {
-      recalcIncome();
-      tick();
-    }, CONFIG.GAME_TICK_MS);
-
+    tickInterval = setInterval(tick, CONFIG.GAME_TICK_MS);
     console.log('[Engine] Started');
   }
 
@@ -233,7 +229,8 @@ const Engine = (() => {
   }
 
   function recalcIncome() {
-    STATE.incomePerMin = calcTotalIncomePerMin();
+    STATE.passiveIncomePerMin = calcPassiveIncomePerMin();
+    STATE.incomePerMin = calcTotalIncomePerMin(); // passive + click
   }
 
   // ============================================
@@ -247,7 +244,10 @@ const Engine = (() => {
     upgradeClick,
     getClickValue,
     getClickUpgradePrice,
+    getCPS,
+    getClickIncomePerMin,
     calcTotalIncomePerMin,
+    calcPassiveIncomePerMin,
     CLICK_LEVELS,
   };
 
