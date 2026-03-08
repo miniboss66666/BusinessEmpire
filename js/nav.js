@@ -45,7 +45,7 @@ const Nav = (() => {
     switch (page) {
       case 'home':       if (typeof HomePage     !== 'undefined') HomePage.render();     break;
       case 'business':   if (typeof BusinessPage !== 'undefined') BusinessPage.init(); break;
-      case 'realestate': if (typeof RealEstate   !== 'undefined') RealEstate.render();   break;
+      case 'realestate': if (typeof RealEstatePage !== 'undefined') RealEstatePage.init(); break;
       case 'stock':      if (typeof StockPage    !== 'undefined') StockPage.render();    break;
       case 'phone':      if (typeof PhonePage    !== 'undefined') PhonePage.render();    break;
       case 'casino':     if (typeof CasinoPage   !== 'undefined') CasinoPage.render();   break;
