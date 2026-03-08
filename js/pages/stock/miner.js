@@ -15,6 +15,29 @@ const StockMiner = (() => {
     { id:'quantum', name:'Quantum Chip',  emoji:'👑', price:50000,  speed:50, breakRate:0.001,elec:50.0 },
   ];
 
+  // MOBO Server tiers — mỗi tier tăng max GPU slots
+  const MOBO_TIERS = [
+    { tier:0, name:'Không có',         slots:2,  price:0 },
+    { tier:1, name:'MOBO B450',        slots:4,  price:5_000 },
+    { tier:2, name:'MOBO B550',        slots:6,  price:15_000 },
+    { tier:3, name:'MOBO X570',        slots:8,  price:40_000 },
+    { tier:4, name:'MOBO Server E-ATX',slots:10, price:100_000 },
+    { tier:5, name:'MOBO Server Pro',  slots:12, price:250_000 },
+    { tier:6, name:'MOBO Server Rack', slots:14, price:600_000 },
+    { tier:7, name:'MOBO Server Farm', slots:16, price:1_500_000 },
+    { tier:8, name:'MOBO Quantum',     slots:18, price:4_000_000 },
+    { tier:9, name:'MOBO Quantum MAX', slots:20, price:10_000_000 },
+  ];
+
+  function getMaxSlots() {
+    const tier = STATE.stock?.miner?.moboTier || 0;
+    return MOBO_TIERS[tier]?.slots || 2;
+  }
+
+  function getMoboTier() {
+    return STATE.stock?.miner?.moboTier || 0;
+  }
+
   // Server shop pool — sẽ restock mỗi 20 phút
   // Dùng Supabase real-time hoặc giả lập bằng timestamp
   const SHOP_RESTOCK_MS = 20 * 60 * 1000; // 20 phút
@@ -177,10 +200,15 @@ const StockMiner = (() => {
                   <span style="color:var(--green)">${o.total - o.broken} active</span>
                   ${o.broken > 0 ? `<span style="color:var(--red)"> · ${o.broken} hỏng</span>` : ''}
                 </div>
-                ${o.broken > 0 ? `
-                <button class="miner-repair-btn" data-gpu="${t.id}">
-                  🔧 Sửa (${Format.money(t.price * 0.3 * o.broken)})
-                </button>` : ''}
+                <div class="miner-gpu-actions">
+                  ${o.broken > 0 ? `
+                  <button class="miner-repair-btn" data-gpu="${t.id}">
+                    🔧 Sửa (${Format.money(t.price * 0.3 * o.broken)})
+                  </button>` : ''}
+                  <button class="miner-sell-gpu-btn" data-gpu="${t.id}">
+                    💰 Bán 1 (${Format.money(t.price * 0.5)})
+                  </button>
+                </div>
               </div>`;
             }).join('')}
           </div>
@@ -225,6 +253,39 @@ const StockMiner = (() => {
             }).join('')}
           </div>
         </div>
+
+        <!-- MOBO Upgrade -->
+        <div class="miner-section">
+          <div class="miner-section-title">🖥️ MOBO Server — GPU Slots</div>
+          ${(() => {
+            const tier = getMoboTier();
+            const cur = MOBO_TIERS[tier];
+            const next = MOBO_TIERS[tier + 1];
+            return `
+            <div class="miner-mobo-card">
+              <div class="miner-mobo-info">
+                <div class="miner-gpu-name">${cur.name}</div>
+                <div class="miner-gpu-sub">
+                  ${gpus.length}/${cur.slots} slots đang dùng
+                </div>
+              </div>
+              <div class="miner-mobo-slots">
+                ${Array.from({length: cur.slots}, (_, i) => `
+                  <div class="miner-slot ${i < gpus.length ? (gpus[i]?.broken ? 'broken' : 'used') : 'empty'}"></div>
+                `).join('')}
+              </div>
+            </div>
+            ${next ? `
+            <button class="miner-mobo-upgrade-btn" id="btn-mobo-upgrade"
+                    ${STATE.balance < next.price ? 'disabled' : ''}>
+              ⬆️ Nâng lên ${next.name} — ${Format.money(next.price)}
+              <span style="font-size:0.6rem;opacity:0.7"> (+${next.slots - cur.slots} slots → ${next.slots} tổng)</span>
+            </button>` : `
+            <div style="text-align:center;padding:8px;font-size:0.7rem;color:var(--gold)">
+              👑 MAX — ${cur.slots} slots
+            </div>`}`;
+          })()}
+        </div>
       </div>`;
   }
 
@@ -237,9 +298,14 @@ const StockMiner = (() => {
         if (!type || STATE.balance < type.price) return;
         const shop = shopStock.find(s => s.gpuId === gpuId);
         if (!shop || shop.qty <= 0) { UI.toast('Hết hàng!', 'error'); return; }
+        const currentGpus = (STATE.stock?.miner?.gpus || []).length;
+        if (currentGpus >= getMaxSlots()) {
+          UI.toast(`⚠️ Đã đầy ${getMaxSlots()} slots! Nâng cấp MOBO để mở thêm.`, 'error');
+          return;
+        }
         STATE.balance -= type.price;
         shop.qty--;
-        if (!STATE.stock.miner) STATE.stock.miner = { gpus: [] };
+        if (!STATE.stock.miner) STATE.stock.miner = { gpus: [], moboTier: 0 };
         STATE.stock.miner.gpus.push({ gpuId, broken: false });
         STATE.stock.minerShop = shopStock;
         UI.toast(`${type.emoji} Mua ${type.name}!`, 'success');
@@ -261,6 +327,37 @@ const StockMiner = (() => {
         UI.toast(`🔧 Đã sửa ${brokenGpus.length} ${type.name}!`, 'success');
         _refreshUI();
       });
+    });
+
+    // Bán GPU
+    document.querySelectorAll('.miner-sell-gpu-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gpuId = btn.dataset.gpu;
+        const type = GPU_TYPES.find(t => t.id === gpuId);
+        if (!type) return;
+        const gpus = STATE.stock?.miner?.gpus || [];
+        // Ưu tiên bán cái đang hỏng trước
+        const idx = gpus.findIndex(g => g.gpuId === gpuId && g.broken);
+        const sellIdx = idx >= 0 ? idx : gpus.findIndex(g => g.gpuId === gpuId);
+        if (sellIdx < 0) return;
+        const sellPrice = type.price * 0.5;
+        STATE.balance += sellPrice;
+        STATE.totalEarned += sellPrice;
+        STATE.stock.miner.gpus.splice(sellIdx, 1);
+        UI.toast(`💰 Bán ${type.name} — ${Format.money(sellPrice)}`, 'success');
+        _refreshUI();
+      });
+    });
+
+    // MOBO upgrade
+    document.getElementById('btn-mobo-upgrade')?.addEventListener('click', () => {
+      const tier = getMoboTier();
+      const next = MOBO_TIERS[tier + 1];
+      if (!next || STATE.balance < next.price) return;
+      STATE.balance -= next.price;
+      STATE.stock.miner.moboTier = tier + 1;
+      UI.toast(`🖥️ Nâng cấp lên ${next.name} — ${next.slots} slots!`, 'success');
+      _refreshUI();
     });
 
     // Restock timer countdown
