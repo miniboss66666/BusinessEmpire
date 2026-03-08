@@ -16,31 +16,56 @@ const BusinessMarket = (() => {
     electronics: { emoji:'📱', name:'Điện Tử',   sellPerMin:4, sellPrice:7, costPerUnit:2, gpPrice:1000, gpMultiPrice:35000,  maxBranch:300, maxMulti:1000 },
   };
 
-  // Kho: level → max stock
-  const WAREHOUSE_DATA = Array.from({length:50}, (_,i) => ({
-    level: i+1,
-    maxStock: Math.floor(1000 * Math.pow(1.35, i)),   // 1K → ~50M
-    upgradePrice: i === 0 ? 0 : Math.floor(500 * Math.pow(2, i)),
-  }));
+  // Kho: 20 levels, max 10 tỷ
+  const WAREHOUSE_DATA = (() => {
+    const levels = 20;
+    const minStock = 1_000;
+    const maxStock = 10_000_000_000;
+    const ratio = Math.pow(maxStock / minStock, 1 / (levels - 1));
+    return Array.from({length: levels}, (_, i) => ({
+      level: i + 1,
+      maxStock: Math.round(minStock * Math.pow(ratio, i)),
+      upgradePrice: i === 0 ? 0 : Math.round(500 * Math.pow(8, i)),
+    }));
+  })();
 
   const RESTOCK_PRICE = 2; // $2/unit
 
-  // Manager: level → auto restock mỗi phút, extra cost %
-  const MANAGER_DATA = [
-    null, // 0 = không có
-    { level:1, restockPerMin:100,  extraCost:0.10, price:500 },
-    { level:2, restockPerMin:300,  extraCost:0.12, price:2000 },
-    { level:3, restockPerMin:700,  extraCost:0.14, price:8000 },
-    { level:4, restockPerMin:1500, extraCost:0.16, price:25000 },
-    { level:5, restockPerMin:5000, extraCost:0.20, price:100000 },
-  ];
+  // Manager: 20 levels
+  // - restockInterval: giây giữa mỗi lần nhập (20s → 1s)
+  // - triggerPct: nhập khi kho dưới X% (tùy chọn người dùng)
+  // - restockPct: nhập bao nhiêu % chỗ trống (tùy chọn người dùng)
+  // - extraCost: +chi phí %
+  const MANAGER_DATA = (() => {
+    const arr = [null];
+    for (let i = 1; i <= 20; i++) {
+      const intervalSecs = Math.max(1, Math.round(20 - (20 - 1) * (i - 1) / 19)); // 20→1
+      arr.push({
+        level: i,
+        intervalSecs,
+        extraCost: 0.05 + i * 0.01,          // 6%→25%
+        price: Math.round(500 * Math.pow(3.5, i - 1)),
+      });
+    }
+    return arr;
+  })();
+  // Manager settings (người dùng chọn)
+  // triggerPct: nhập khi kho còn ≤ X%  (25/50/75/100)
+  // restockPct: nhập đủ X% dung lượng kho (25/50/75/100)
 
   // Store level → consume multiplier (2→10/phút)
   const STORE_LEVEL_CONSUME = [1, 1.5, 3, 6, 10]; // lv1→5
 
-  let currentTab = 'warehouse'; // 'warehouse' | store key
-  let currentView = 'dashboard'; // 'dashboard' | 'detail'
-  let restockInput = 100; // số lượng muốn nhập
+  let currentTab = 'warehouse';
+  let currentView = 'dashboard';
+  let restockInput = 100;
+  let _mgrTimer = null; // interval timer cho manager auto restock
+
+  function _getMgrSettings() {
+    const s = st();
+    if (!s.mgrSettings) s.mgrSettings = { triggerPct: 50, restockPct: 100 };
+    return s.mgrSettings;
+  }
 
   // ── HELPERS ───────────────────────────────
   function st() { return STATE.business.market; }
@@ -199,7 +224,7 @@ const BusinessMarket = (() => {
             <span class="wh-title">📦 Kho Hàng — Cấp ${wh.level}</span>
             <span class="wh-tax-badge">8.3%</span>
           </div>
-          <div class="wh-bar-wrap">
+          <div class="wh-bar-wrap" id="wh-stock-live" title="stock">
             <div class="wh-bar">
               <div class="wh-bar-fill ${pct > 80 ? 'high' : pct > 40 ? 'mid' : 'low'}"
                    style="width:${pct}%"></div>
@@ -215,7 +240,7 @@ const BusinessMarket = (() => {
               <span class="wh-stat-lbl">Tiêu/phút</span>
             </div>
             <div class="wh-stat">
-              <span class="wh-stat-val" style="color:var(--green)">${Format.money(getIncome())}</span>
+              <span class="wh-stat-val" style="color:var(--green)" id="wh-income-live">${Format.money(getIncome())}</span>
               <span class="wh-stat-lbl">Lãi/phút</span>
             </div>
             <div class="wh-stat">
@@ -253,17 +278,43 @@ const BusinessMarket = (() => {
           <div class="wh-section-title">👔 Quản Lý Kho</div>
           ${mgr ? `
             <div class="wh-mgr-active">
-              <span>✅ Manager Cấp ${mgr.level}</span>
-              <span style="color:var(--green)">+${mgr.restockPerMin}/phút</span>
-              <span style="color:var(--gold)">+${(mgr.extraCost*100).toFixed(0)}% chi phí</span>
-            </div>` : `
+              <div class="wh-mgr-info">
+                <span>✅ Manager Cấp ${mgr.level}</span>
+                <span style="color:var(--accent)">⚡ Nhập mỗi ${mgr.intervalSecs}s</span>
+                <span style="color:var(--gold)">+${(mgr.extraCost*100).toFixed(0)}% chi phí</span>
+              </div>
+
+              <!-- Trigger threshold -->
+              <div class="wh-mgr-setting">
+                <div class="wh-mgr-setting-label">🔔 Nhập khi kho còn ≤</div>
+                <div class="wh-mgr-btns" id="mgr-trigger-btns">
+                  ${[25,50,75,100].map(p => `
+                    <button class="wh-mgr-opt-btn ${_getMgrSettings().triggerPct===p?'active':''}"
+                            data-trigger="${p}">${p}%</button>`).join('')}
+                </div>
+              </div>
+
+              <!-- Restock amount -->
+              <div class="wh-mgr-setting">
+                <div class="wh-mgr-setting-label">📦 Nhập bao nhiêu khi kích hoạt</div>
+                <div class="wh-mgr-btns" id="mgr-restock-btns">
+                  ${[25,50,75,100].map(p => `
+                    <button class="wh-mgr-opt-btn ${_getMgrSettings().restockPct===p?'active':''}"
+                            data-restock="${p}">${p}%</button>`).join('')}
+                </div>
+              </div>
+              <div class="wh-mgr-hint">
+                Khi kho ≤ <strong>${_getMgrSettings().triggerPct}%</strong> → nhập thêm
+                <strong>${_getMgrSettings().restockPct}%</strong> dung lượng còn trống
+              </div>
+            ` : `
             <div class="wh-mgr-none">Chưa có manager — hàng sẽ hết nếu không nhập thủ công</div>`}
           ${nextMgr ? `
             <button class="wh-mgr-btn" id="btn-wh-mgr"
                     ${STATE.balance < nextMgr.price ? 'disabled' : ''}>
-              ${mgr ? '⬆️ NÂNG CẤP' : '➕ THUÊ'} MANAGER ${mgr ? `CẤP ${nextMgr.level}` : ''} — ${Format.money(nextMgr.price)}
-            </button>` : `
-            <div class="wh-mgr-max">✨ Manager MAX (Cấp 5)</div>`}
+              ${mgr ? `⬆️ NÂNG CẤP → Cấp ${nextMgr.level} (${nextMgr.intervalSecs}s)` : '➕ THUÊ MANAGER'} — ${Format.money(nextMgr.price)}
+            </button>` : (mgr ? `
+            <div class="wh-mgr-max">👑 Manager MAX (Cấp 20 · 1s)</div>` : '')}
         </div>
 
         <!-- Nâng cấp kho -->
@@ -370,8 +421,8 @@ const BusinessMarket = (() => {
             <span style="color:var(--text-dim);font-size:0.68rem">Tiêu kho x${STORE_LEVEL_CONSUME[store.level]} → x${STORE_LEVEL_CONSUME[store.level+1] || STORE_LEVEL_CONSUME[4]}</span>
           </div>
           <button class="store-lvup-btn" id="btn-store-lv-${key}"
-                  ${STATE.balance < gpPrice * 10 ? 'disabled' : ''}>
-            ${Format.money(gpPrice * 10)}
+                  ${STATE.balance < gpPrice * Math.pow(10, store.level) ? 'disabled' : ''}>
+            ${Format.money(gpPrice * Math.pow(10, store.level))}
           </button>
         </div>` : `
         <div class="store-lv-maxed">⭐ CỬA HÀNG ĐẠT CẤP TỐI ĐA</div>`}
@@ -506,7 +557,13 @@ const BusinessMarket = (() => {
     // Buy branch
     document.getElementById(`btn-store-buy-${key}`)?.addEventListener('click', () => {
       const maxB = store.isMultinational ? data.maxMulti : data.maxBranch;
-      const count = buyN === 'Max' ? maxB - store.owned : Math.min(buyN, maxB - store.owned);
+      let count;
+      if (buyN === 'Max') {
+        const maxByMoney = data.gpPrice > 0 ? Math.floor(STATE.balance / data.gpPrice) : 0;
+        count = Math.min(maxByMoney, maxB - store.owned);
+      } else {
+        count = Math.min(buyN, maxB - store.owned);
+      }
       const cost = count * data.gpPrice;
       if (count <= 0 || STATE.balance < cost) { UI.toast('Không đủ tiền!','error'); return; }
       STATE.balance -= cost;
@@ -518,7 +575,7 @@ const BusinessMarket = (() => {
 
     // Level up store
     document.getElementById(`btn-store-lv-${key}`)?.addEventListener('click', () => {
-      const cost = data.gpPrice * 10;
+      const cost = data.gpPrice * Math.pow(10, store.level);
       if (store.level >= 5 || STATE.balance < cost) return;
       STATE.balance -= cost;
       STATE.stats.spentBusiness += cost;
@@ -556,7 +613,13 @@ const BusinessMarket = (() => {
     const store = st().stores[key];
     const data = STORE_DATA[key];
     const maxB = store.isMultinational ? data.maxMulti : data.maxBranch;
-    const count = buyN === 'Max' ? maxB - store.owned : Math.min(buyN, maxB - store.owned);
+    let count;
+    if (buyN === 'Max') {
+      const maxByMoney = data.gpPrice > 0 ? Math.floor(STATE.balance / data.gpPrice) : 0;
+      count = Math.min(maxByMoney, maxB - store.owned);
+    } else {
+      count = Math.min(buyN, maxB - store.owned);
+    }
     const cost = count * data.gpPrice;
     const btn = document.getElementById(`btn-store-buy-${key}`);
     if (btn) {
@@ -593,18 +656,70 @@ const BusinessMarket = (() => {
     if (consume > 0 && s.warehouse.stock > 0) {
       s.warehouse.stock = Math.max(0, s.warehouse.stock - consume);
     }
-    // Manager auto restock
-    const mgr = MANAGER_DATA[s.manager];
-    if (mgr && s.warehouse.stock < warehouseMax()) {
-      const qty = Math.min(mgr.restockPerMin, warehouseMax() - s.warehouse.stock);
-      const cost = qty * RESTOCK_PRICE * (1 + mgr.extraCost);
-      if (STATE.balance >= cost) {
-        STATE.balance -= cost;
-        s.warehouse.stock += qty;
-      }
-    }
+    // Manager auto restock: handled by _startMgrTimer() setInterval
+    // Update UI realtime (chỉ các số, không re-render toàn bộ)
+    _tickUI();
   }
 
-  return { renderHTML, bindEvents, getIncome, tick };
+  function _refreshMgrHint() {
+    const hint = document.querySelector('.wh-mgr-hint');
+    if (!hint) return;
+    const cfg = _getMgrSettings();
+    hint.innerHTML = `Khi kho ≤ <strong>${cfg.triggerPct}%</strong> → nhập thêm <strong>${cfg.restockPct}%</strong> dung lượng còn trống`;
+  }
+
+  function _startMgrTimer() {
+    if (_mgrTimer) clearInterval(_mgrTimer);
+    const s = st();
+    const mgr = MANAGER_DATA[s.manager];
+    if (!mgr) return;
+    _mgrTimer = setInterval(() => {
+      const ss = st();
+      const mgrNow = MANAGER_DATA[ss.manager];
+      if (!mgrNow) return;
+      const max = warehouseMax();
+      const cfg = _getMgrSettings();
+      const pct = max > 0 ? ss.warehouse.stock / max * 100 : 100;
+      if (pct <= cfg.triggerPct) {
+        const spaceLeft = max - ss.warehouse.stock;
+        const qty = Math.floor(spaceLeft * cfg.restockPct / 100);
+        if (qty <= 0) return;
+        const cost = qty * RESTOCK_PRICE * (1 + mgrNow.extraCost);
+        if (STATE.balance >= cost) {
+          STATE.balance -= cost;
+          ss.warehouse.stock += qty;
+          _tickUI();
+        }
+      }
+    }, mgr.intervalSecs * 1000);
+  }
+
+  function _tickUI() {
+    const s = st();
+    const wh = s.warehouse;
+    const max = warehouseMax();
+    const pct = max > 0 ? (wh.stock / max * 100).toFixed(1) : 0;
+    const timeLeft = totalConsumePerMin() > 0
+      ? (wh.stock / totalConsumePerMin() / 60).toFixed(1)
+      : '∞';
+
+    // Progress bar
+    const bar = document.querySelector('.wh-bar-fill');
+    if (bar) {
+      bar.style.width = pct + '%';
+      bar.style.background = pct < 20 ? 'var(--red)' : pct < 50 ? '#f4a030' : 'var(--accent)';
+    }
+    // Stock text
+    const stockEl = document.getElementById('wh-stock-live');
+    if (stockEl) stockEl.textContent = Format.money(wh.stock) + ' / ' + Format.money(max);
+    // Time left
+    const timeEl = document.getElementById('wh-time-live');
+    if (timeEl) timeEl.textContent = '⏱ ' + timeLeft + 'h còn lại';
+    // Income
+    const incEl = document.getElementById('wh-income-live');
+    if (incEl) incEl.textContent = Format.money(getIncome());
+  }
+
+  return { renderHTML, bindEvents, getIncome, tick, startMgrTimer: _startMgrTimer };
 
 })();

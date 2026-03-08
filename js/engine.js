@@ -288,6 +288,7 @@ const Engine = (() => {
     if (typeof UI !== 'undefined') UI.updateHUD();
     if (typeof HomePage !== 'undefined' && HomePage.tickSave) HomePage.tickSave();
     if (typeof BusinessLemonade !== 'undefined' && BusinessLemonade.tickIncome) BusinessLemonade.tickIncome();
+    if (typeof BusinessMarket   !== 'undefined' && BusinessMarket.tick)        BusinessMarket.tick();
   }
 
   // ============================================

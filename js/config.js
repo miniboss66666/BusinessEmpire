@@ -16,5 +16,5 @@ const CONFIG = Object.freeze({
   SAVE_INTERVAL_MS: 30000,   // Auto-save mỗi 30 giây
 
   // Version
-  VERSION: '0.1.20.4',
+  VERSION: '0.1.20.5',
 });

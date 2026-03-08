@@ -69,7 +69,7 @@ const StockMarket = (() => {
   let history = {}; // id -> [giá 20 phiên gần nhất]
 
   let selectedExchange = 'NYSE';
-  let selectedStock = null; // id đang xem detail
+  let selectedStock = null; // id đang xem chart+trade
 
   // ── INIT ─────────────────────────────────
   function init() {
@@ -86,7 +86,7 @@ const StockMarket = (() => {
     });
 
     // Start price fluctuation
-    setInterval(fluctuatePrices, 8000); // mỗi 8s giá dao động
+    setInterval(fluctuatePrices, 120_000); // mỗi 8s giá dao động
   }
 
   function fluctuatePrices() {
@@ -111,33 +111,151 @@ const StockMarket = (() => {
 
   // ── RENDER ───────────────────────────────
   function renderHTML() {
+    if (selectedStock) return renderStockDetail(selectedStock);
+    return renderStockList();
+  }
+
+  function renderStockList() {
     const exList = Object.entries(EXCHANGES);
     const stocks = STOCKS_DATA.filter(s => s.exchange === selectedExchange);
     const portfolio = STATE.stock?.portfolio || {};
-
     const portfolioValue = getPortfolioValue();
     const portfolioStocks = STOCKS_DATA.filter(s => portfolio[s.id]?.shares > 0);
 
     return `
       <div class="stk-wrap">
-        <!-- Exchange selector -->
         <div class="stk-exchange-row">
           ${exList.map(([key, ex]) => `
             <button class="stk-ex-btn ${selectedExchange===key?'active':''}" data-ex="${key}">
               ${ex.flag} ${ex.name}
             </button>`).join('')}
         </div>
-
-        <!-- Portfolio mini summary -->
         ${portfolioStocks.length > 0 ? `
         <div class="stk-portfolio-bar">
           <span>💼 Danh mục: <strong style="color:var(--green)">${Format.money(portfolioValue)}</strong></span>
           <span style="font-size:0.62rem;color:var(--text-dim)">${portfolioStocks.length} mã</span>
         </div>` : ''}
-
-        <!-- Stock list -->
         <div class="stk-list">
           ${stocks.map(s => renderStockRow(s)).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── STOCK DETAIL — chart + trade ─────────
+  function renderStockDetail(id) {
+    const s = STOCKS_DATA.find(x => x.id === id);
+    if (!s) return '';
+    const price = getPrice(id);
+    const hist = history[id] || [price];
+    const prev = hist.length > 1 ? hist[hist.length - 2] : price;
+    const change = ((price - prev) / prev * 100);
+    const up = change >= 0;
+    const ex = EXCHANGES[s.exchange];
+    const pos = STATE.stock?.portfolio?.[id];
+    const held = pos?.shares || 0;
+    const avgPrice = pos?.avgPrice || 0;
+    const unrealized = held > 0 ? (price - avgPrice) * held : 0;
+    const maxBuy = Math.floor(STATE.balance / price);
+
+    // Build SVG chart từ history
+    const chartPts = hist.slice(-30);
+    const cMin = Math.min(...chartPts) * 0.998;
+    const cMax = Math.max(...chartPts) * 1.002;
+    const w = 300, h = 100;
+    const svgPts = chartPts.map((v, i) => {
+      const x = (i / (chartPts.length - 1)) * w;
+      const y = h - ((v - cMin) / (cMax - cMin)) * h;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const lastX = ((chartPts.length - 1) / (chartPts.length - 1)) * w;
+    const lastY = h - ((chartPts[chartPts.length - 1] - cMin) / (cMax - cMin)) * h;
+
+    return `
+      <div class="stk-detail-wrap">
+        <!-- Topbar -->
+        <div class="stk-detail-topbar">
+          <button class="stk-back-btn" id="btn-stk-back">← Quay Lại</button>
+          <div class="stk-detail-title-block">
+            <span class="stk-detail-ticker">${s.ticker}</span>
+            <span class="stk-detail-name">${s.name}</span>
+          </div>
+          <div class="stk-detail-price-block">
+            <span class="stk-detail-price ${up?'up':'down'}">${Format.money(price)}</span>
+            <span class="stk-detail-chg ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(change).toFixed(2)}%</span>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="stk-chart-wrap">
+          <svg class="stk-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" id="stk-chart-${id}">
+            <defs>
+              <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="${up?'#00c853':'#ff4455'}" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="${up?'#00c853':'#ff4455'}" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <polygon points="${svgPts} ${w},${h} 0,${h}"
+              fill="url(#chartGrad)"/>
+            <polyline points="${svgPts}" fill="none"
+              stroke="${up?'#00c853':'#ff4455'}" stroke-width="2"/>
+            <circle cx="${lastX}" cy="${lastY.toFixed(1)}" r="3"
+              fill="${up?'#00c853':'#ff4455'}"/>
+          </svg>
+          <div class="stk-chart-labels">
+            <span>${Format.money(cMin)}</span>
+            <span style="color:var(--text-dim);font-size:0.6rem">${chartPts.length} phiên</span>
+            <span>${Format.money(cMax)}</span>
+          </div>
+        </div>
+
+        <!-- Position info -->
+        ${held > 0 ? `
+        <div class="stk-pos-bar">
+          <div class="stk-pos-item">
+            <span>Đang nắm</span>
+            <strong>${Format.money(held)} cổ</strong>
+          </div>
+          <div class="stk-pos-item">
+            <span>Giá TB</span>
+            <strong>${ex.currency}${Format.money(avgPrice)}</strong>
+          </div>
+          <div class="stk-pos-item">
+            <span>P&L</span>
+            <strong style="color:${unrealized>=0?'var(--green)':'var(--red)'}">
+              ${unrealized>=0?'+':''}${Format.money(unrealized)}
+            </strong>
+          </div>
+          <div class="stk-pos-item">
+            <span>Tổng trị</span>
+            <strong style="color:var(--green)">${Format.money(held*price)}</strong>
+          </div>
+        </div>` : ''}
+
+        <!-- Trade panel -->
+        <div class="stk-trade-panel">
+          <div class="stk-trade-pct-row">
+            <button class="stk-qty-btn" data-pct="25">25%</button>
+            <button class="stk-qty-btn" data-pct="50">50%</button>
+            <button class="stk-qty-btn" data-pct="75">75%</button>
+            <button class="stk-qty-btn" data-pct="100">Max</button>
+          </div>
+          <div class="stk-trade-input-row">
+            <input class="stk-qty-input" id="stk-qty" type="number"
+                   min="1" value="1" placeholder="Số cổ">
+            <div class="stk-trade-cost" id="stk-cost">
+              = ${Format.money(price)}
+            </div>
+          </div>
+          <div class="stk-trade-actions">
+            <button class="stk-buy-btn" id="btn-stk-buy"
+                    ${maxBuy < 1 ? 'disabled' : ''}>
+              📈 MUA · ${Format.money(STATE.balance)} có
+            </button>
+            <button class="stk-sell-btn" id="btn-stk-sell"
+                    ${held < 1 ? 'disabled' : ''}>
+              📉 BÁN · ${Format.money(held)} cổ
+            </button>
+          </div>
         </div>
       </div>`;
   }
@@ -163,7 +281,7 @@ const StockMarket = (() => {
     }).join(' ');
 
     return `
-      <div class="stk-row" data-id="${s.id}">
+      <div class="stk-row" data-id="${s.id}" style="cursor:pointer">
         <div class="stk-row-left">
           <div class="stk-ticker">${s.ticker}</div>
           <div class="stk-name">${s.name}</div>
@@ -175,91 +293,63 @@ const StockMarket = (() => {
         </svg>
         <div class="stk-row-right">
           <div class="stk-price ${up ? 'up' : 'down'}">
-            ${ex.currency}${Format.money(price)}
+            ${Format.money(price)}
           </div>
           <div class="stk-change ${up ? 'up' : 'down'}">
             ${up ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}%
           </div>
         </div>
-        <button class="stk-trade-btn" data-id="${s.id}">GIAO DỊCH</button>
+
       </div>`;
   }
 
-  function renderTradeModal(id) {
+
+
+  // ── BIND ─────────────────────────────────
+  function bindEvents() {
+    if (selectedStock) {
+      _bindDetailEvents(selectedStock);
+      return;
+    }
+    document.querySelectorAll('.stk-ex-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedExchange = btn.dataset.ex;
+        _refresh();
+      });
+    });
+    document.querySelectorAll('.stk-row[data-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        selectedStock = row.dataset.id;
+        _refresh();
+      });
+    });
+  }
+
+  function _bindDetailEvents(id) {
     const s = STOCKS_DATA.find(x => x.id === id);
-    if (!s) return;
+    const ex = EXCHANGES[s?.exchange];
     const price = getPrice(id);
     const pos = STATE.stock?.portfolio?.[id];
     const held = pos?.shares || 0;
-    const avgPrice = pos?.avgPrice || 0;
-    const ex = EXCHANGES[s.exchange];
-    const unrealized = held > 0 ? (price - avgPrice) * held : 0;
     const maxBuy = Math.floor(STATE.balance / price);
 
-    UI.showModal(`
-      <div class="stk-modal">
-        <div class="stk-modal-header">
-          <div>
-            <div class="stk-modal-ticker">${s.ticker}</div>
-            <div class="stk-modal-name">${s.name} · ${ex.flag} ${s.exchange}</div>
-          </div>
-          <div class="stk-modal-price">${ex.currency}${Format.money(price)}</div>
-        </div>
-
-        ${held > 0 ? `
-        <div class="stk-modal-pos">
-          <div>Đang nắm: <strong>${Format.money(held)} cổ</strong></div>
-          <div>Giá TB: ${ex.currency}${Format.money(avgPrice)}</div>
-          <div style="color:${unrealized>=0?'var(--green)':'var(--red)'}">
-            P&L: ${unrealized>=0?'+':''}${Format.money(unrealized)}
-          </div>
-        </div>` : ''}
-
-        <div class="stk-modal-inputs">
-          <div class="stk-modal-label">Số lượng cổ phiếu:</div>
-          <div class="stk-modal-qty-row">
-            <button class="stk-qty-btn" data-pct="25">25%</button>
-            <button class="stk-qty-btn" data-pct="50">50%</button>
-            <button class="stk-qty-btn" data-pct="75">75%</button>
-            <button class="stk-qty-btn" data-pct="100">Max</button>
-          </div>
-          <input class="stk-qty-input" id="stk-qty" type="number" min="1" value="1" placeholder="Số lượng">
-          <div class="stk-modal-cost" id="stk-cost">
-            Tổng: ${Format.money(price)} · Còn: ${Format.money(STATE.balance - price)}
-          </div>
-        </div>
-
-        <div class="stk-modal-actions">
-          <button class="stk-buy-btn" id="btn-stk-buy"
-                  ${maxBuy < 1 ? 'disabled' : ''}>
-            📈 MUA
-          </button>
-          <button class="stk-sell-btn" id="btn-stk-sell"
-                  ${held < 1 ? 'disabled' : ''}>
-            📉 BÁN
-          </button>
-        </div>
-      </div>
-    `);
+    document.getElementById('btn-stk-back')?.addEventListener('click', () => {
+      selectedStock = null;
+      _refresh();
+    });
 
     const qtyInput = document.getElementById('stk-qty');
     const costEl = document.getElementById('stk-cost');
-
     function updateCost() {
       const qty = parseInt(qtyInput?.value) || 0;
-      const total = qty * price;
-      if (costEl) costEl.textContent =
-        `Tổng: ${Format.money(total)} · Còn: ${Format.money(STATE.balance - total)}`;
+      if (costEl) costEl.textContent = `= ${ex?.currency}${Format.money(qty * price)} · Còn: ${Format.money(STATE.balance - qty * price)}`;
     }
-
     qtyInput?.addEventListener('input', updateCost);
 
-    // % buttons
     document.querySelectorAll('.stk-qty-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const pct = parseInt(btn.dataset.pct) / 100;
-        const qty = Math.floor(maxBuy * pct);
-        if (qtyInput) qtyInput.value = Math.max(1, qty);
+        const qty = Math.max(1, Math.floor(maxBuy * parseInt(btn.dataset.pct) / 100));
+        if (qtyInput) qtyInput.value = qty;
         updateCost();
       });
     });
@@ -269,44 +359,25 @@ const StockMarket = (() => {
       const total = qty * price;
       if (qty < 1 || STATE.balance < total) { UI.toast('Không đủ tiền!', 'error'); return; }
       STATE.balance -= total;
-      STATE.stats.spentBusiness = (STATE.stats.spentBusiness || 0) + total;
       if (!STATE.stock.portfolio) STATE.stock.portfolio = {};
-      const cur = STATE.stock.portfolio[id] || { shares: 0, avgPrice: 0 };
+      const cur = STATE.stock.portfolio[id] || { shares:0, avgPrice:0 };
       const newShares = cur.shares + qty;
-      STATE.stock.portfolio[id] = {
-        shares: newShares,
-        avgPrice: (cur.avgPrice * cur.shares + total) / newShares,
-      };
+      STATE.stock.portfolio[id] = { shares: newShares, avgPrice: (cur.avgPrice * cur.shares + total) / newShares };
       UI.toast(`📈 Mua ${qty} cổ ${s.ticker} — ${Format.money(total)}`, 'success');
-      UI.closeModal();
       _refresh();
     });
 
     document.getElementById('btn-stk-sell')?.addEventListener('click', () => {
       const qty = parseInt(qtyInput?.value) || 0;
       const pos2 = STATE.stock?.portfolio?.[id];
-      if (qty < 1 || !pos2 || qty > pos2.shares) { UI.toast('Không đủ cổ!', 'error'); return; }
+      if (qty < 1 || !pos2 || qty > pos2.shares) { UI.toast('Không đủ cổ để bán!', 'error'); return; }
       const total = qty * price;
       STATE.balance += total;
       STATE.totalEarned += total;
       pos2.shares -= qty;
       if (pos2.shares === 0) delete STATE.stock.portfolio[id];
       UI.toast(`📉 Bán ${qty} cổ ${s.ticker} — ${Format.money(total)}`, 'success');
-      UI.closeModal();
       _refresh();
-    });
-  }
-
-  // ── BIND ─────────────────────────────────
-  function bindEvents() {
-    document.querySelectorAll('.stk-ex-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        selectedExchange = btn.dataset.ex;
-        _refresh();
-      });
-    });
-    document.querySelectorAll('.stk-trade-btn').forEach(btn => {
-      btn.addEventListener('click', () => renderTradeModal(btn.dataset.id));
     });
   }
 
@@ -334,7 +405,7 @@ const StockMarket = (() => {
       const priceEl = row.querySelector('.stk-price');
       const changeEl = row.querySelector('.stk-change');
       if (priceEl) {
-        priceEl.textContent = `${ex.currency}${Format.money(price)}`;
+        priceEl.textContent = `${Format.money(price)}`;
         priceEl.className = `stk-price ${up ? 'up' : 'down'}`;
       }
       if (changeEl) {
