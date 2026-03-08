@@ -1,1 +1,189 @@
-/* placeholder */
+/* ════════════════════════════════════════════
+   REALESTATE.CSS
+   ════════════════════════════════════════════ */
+.re-wrap { display:flex; flex-direction:column; height:100%; }
+
+.re-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 14px 8px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.re-title {
+  font-family:'Orbitron',monospace; font-size:0.82rem;
+  font-weight:700; color:var(--text-bright); letter-spacing:1px;
+}
+.re-income-val {
+  font-family:'Orbitron',monospace; font-size:0.75rem;
+  font-weight:700; color:var(--green);
+}
+
+/* Tabs */
+.re-tabs {
+  display:flex; gap:0; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.re-tab {
+  flex:1; padding:9px; background:transparent; border:none;
+  border-bottom:2px solid transparent; color:var(--text-dim);
+  font-size:0.73rem; font-weight:700; cursor:pointer; transition:all 0.2s;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.re-tab:hover { color:var(--text); }
+.re-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+.re-tab-count {
+  background:var(--gold); color:#000; font-size:0.58rem;
+  border-radius:10px; padding:1px 6px; font-weight:800;
+}
+
+.re-content { flex:1; overflow-y:auto; }
+
+/* Empty */
+.re-empty {
+  text-align:center; padding:40px 20px; color:var(--text-dim);
+  font-size:0.75rem; font-weight:600; display:flex;
+  flex-direction:column; align-items:center; gap:8px;
+}
+
+/* ── OWNED CARDS ── */
+.re-owned-list { display:flex; flex-direction:column; gap:10px; padding:10px 12px; }
+
+.re-owned-card {
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:14px; padding:12px 13px;
+  display:flex; flex-direction:column; gap:9px;
+  position:relative;
+}
+
+.re-card-top { display:flex; align-items:flex-start; gap:10px; }
+.re-card-emoji { font-size:2rem; line-height:1; flex-shrink:0; }
+.re-card-info { flex:1; min-width:0; }
+.re-card-name {
+  font-size:0.76rem; font-weight:700; color:var(--text-bright);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.re-card-loc { font-size:0.63rem; color:var(--text-dim); margin-top:2px; }
+.re-card-type-badge {
+  display:inline-block; margin-top:4px; font-size:0.58rem; font-weight:700;
+  padding:2px 7px; border-radius:10px;
+  background:var(--bg3); color:var(--accent); border:1px solid var(--accent);
+}
+.re-card-income { text-align:right; flex-shrink:0; }
+.re-income-num {
+  font-family:'Orbitron',monospace; font-size:0.8rem;
+  font-weight:700; color:var(--green); display:block;
+}
+.re-income-lbl { font-size:0.6rem; color:var(--text-dim); }
+
+/* Renovation steps */
+.re-reno-row { display:flex; flex-direction:column; gap:4px; }
+.re-reno-steps { display:flex; gap:4px; }
+.re-reno-step {
+  flex:1; height:28px; background:var(--bg3);
+  border:1px solid var(--border); border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.8rem; transition:all 0.2s; cursor:default;
+}
+.re-reno-step.done {
+  background:rgba(0,200,100,0.12); border-color:var(--green);
+}
+.re-reno-step.next {
+  background:rgba(212,175,55,0.1); border-color:var(--gold);
+  animation: re-pulse 1.5s ease-in-out infinite;
+}
+@keyframes re-pulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(212,175,55,0.3); }
+  50%      { box-shadow:0 0 0 4px rgba(212,175,55,0); }
+}
+.re-reno-label { font-size:0.63rem; color:var(--text-dim); font-weight:600; }
+
+/* Actions */
+.re-card-actions { display:flex; gap:7px; }
+.re-reno-btn {
+  flex:1; padding:8px; background:rgba(212,175,55,0.1);
+  border:1px solid var(--gold); border-radius:9px;
+  color:var(--gold); font-size:0.65rem; font-weight:700;
+  cursor:pointer; transition:all 0.2s;
+}
+.re-reno-btn:hover:not(:disabled) { background:var(--gold); color:#000; }
+.re-reno-btn:disabled { opacity:0.35; cursor:not-allowed; }
+.re-reno-max {
+  flex:1; padding:8px; text-align:center;
+  font-size:0.65rem; color:var(--gold); font-weight:700; opacity:0.6;
+}
+.re-sell-btn {
+  padding:8px 12px; background:rgba(255,68,85,0.08);
+  border:1px solid rgba(255,68,85,0.4); border-radius:9px;
+  color:var(--red); font-size:0.65rem; font-weight:700;
+  cursor:pointer; transition:all 0.2s; white-space:nowrap;
+}
+.re-sell-btn:hover { background:var(--red); color:#fff; }
+
+/* ── MARKET ── */
+.re-market-wrap { display:flex; flex-direction:column; height:100%; }
+
+.re-market-toolbar {
+  display:flex; gap:7px; padding:10px 12px 6px; flex-shrink:0;
+}
+.re-search {
+  flex:1; padding:8px 10px; background:var(--bg3);
+  border:1px solid var(--border2); border-radius:8px;
+  color:var(--text); font-size:0.73rem; outline:none;
+}
+.re-search:focus { border-color:var(--accent); }
+.re-sort {
+  padding:7px 8px; background:var(--bg3); border:1px solid var(--border2);
+  border-radius:8px; color:var(--text); font-size:0.68rem; outline:none;
+  cursor:pointer;
+}
+
+.re-type-filter {
+  display:flex; gap:5px; padding:0 12px 8px;
+  overflow-x:auto; flex-shrink:0;
+}
+.re-type-btn {
+  flex-shrink:0; padding:5px 10px; background:var(--bg2);
+  border:1px solid var(--border2); border-radius:20px;
+  color:var(--text-dim); font-size:0.68rem; font-weight:700;
+  cursor:pointer; transition:all 0.15s;
+}
+.re-type-btn:hover { border-color:var(--gold); color:var(--gold); }
+.re-type-btn.active {
+  background:rgba(212,175,55,0.15); border-color:var(--gold); color:var(--gold);
+}
+
+.re-market-list {
+  flex:1; overflow-y:auto; padding:4px 12px 12px;
+  display:flex; flex-direction:column; gap:9px;
+}
+
+/* Market card */
+.re-market-card {
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:13px; padding:11px 12px;
+  display:flex; flex-direction:column; gap:8px;
+  position:relative; transition:border-color 0.2s;
+}
+.re-market-card:hover { border-color:var(--gold); }
+.re-market-card.cant-afford { opacity:0.55; }
+
+.re-card-price-col { text-align:right; flex-shrink:0; }
+.re-card-price {
+  font-family:'Orbitron',monospace; font-size:0.8rem;
+  font-weight:700; color:var(--gold);
+}
+.re-card-roi { font-size:0.65rem; font-weight:600; margin-top:2px; }
+
+.re-card-tax-badge {
+  position:absolute; top:8px; right:10px;
+  font-size:0.55rem; font-weight:700; color:#f4a030;
+  background:rgba(244,160,48,0.12); border:1px solid rgba(244,160,48,0.3);
+  border-radius:5px; padding:2px 5px;
+}
+
+.re-buy-btn {
+  width:100%; padding:10px;
+  background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05));
+  border:1px solid var(--gold); border-radius:10px;
+  color:var(--gold); font-family:'Orbitron',monospace;
+  font-size:0.68rem; font-weight:700; cursor:pointer; transition:all 0.2s;
+}
+.re-buy-btn:hover:not(:disabled) { background:var(--gold); color:#000; box-shadow:0 4px 14px rgba(212,175,55,0.25); }
+.re-buy-btn:disabled { opacity:0.5; cursor:not-allowed; background:var(--bg3); border-color:var(--border); color:var(--text-dim); }

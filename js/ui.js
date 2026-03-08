@@ -102,12 +102,27 @@ const UI = (() => {
     setTheme(STATE.settings.theme);
   }
 
+  function confirm(msg, onYes, onNo) {
+    showModal(`
+      <div style="padding:8px 0">
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text-bright);margin-bottom:16px;line-height:1.5">${msg}</div>
+        <div style="display:flex;gap:8px">
+          <button id="ui-confirm-yes" style="flex:1;padding:10px;background:var(--red);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:0.72rem;cursor:pointer">XÁC NHẬN</button>
+          <button id="ui-confirm-no" style="flex:1;padding:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;color:var(--text-dim);font-weight:700;font-size:0.72rem;cursor:pointer">HỦY</button>
+        </div>
+      </div>
+    `);
+    document.getElementById('ui-confirm-yes')?.addEventListener('click', () => { closeModal(); onYes && onYes(); });
+    document.getElementById('ui-confirm-no')?.addEventListener('click',  () => { closeModal(); onNo  && onNo();  });
+  }
+
   return {
     showModal,
     closeModal,
     updateBalance,
     updateHUD,
     toast,
+    confirm,
     setTheme,
     toggleTheme,
     init,

@@ -110,7 +110,10 @@ const Engine = (() => {
     return total;
   }
 
-  function getRealEstateIncome() { return 0; }
+  function getRealEstateIncome() {
+    if (typeof RealEstatePage === 'undefined') return 0;
+    return RealEstatePage.getIncome();
+  }
 
   function getPhoneIncome() {
     const { y, tubeyou } = STATE.phone;
