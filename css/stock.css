@@ -1,1 +1,230 @@
-/* placeholder */
+/* ════════════════════════════════════════════
+   STOCK.CSS
+   ════════════════════════════════════════════ */
+.stock-wrap { display:flex; flex-direction:column; height:100%; }
+
+.stock-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 14px 8px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.stock-title {
+  font-family:'Orbitron',monospace; font-size:0.82rem;
+  font-weight:700; color:var(--text-bright); letter-spacing:1px;
+}
+.stock-header-stats { display:flex; gap:10px; align-items:center; }
+.stock-total-val {
+  font-family:'Orbitron',monospace; font-size:0.72rem;
+  font-weight:700; color:var(--green);
+}
+.stock-mining-val {
+  font-size:0.65rem; font-weight:700; color:#f4a030;
+}
+
+/* Tabs */
+.stock-tabs {
+  display:flex; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.stock-tab {
+  flex:1; padding:9px; background:transparent; border:none;
+  border-bottom:2px solid transparent; color:var(--text-dim);
+  font-size:0.72rem; font-weight:700; cursor:pointer; transition:all 0.2s;
+}
+.stock-tab:hover { color:var(--text); }
+.stock-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+.stock-content { flex:1; overflow-y:auto; }
+
+/* Portfolio bar */
+.stk-portfolio-bar {
+  display:flex; justify-content:space-between; align-items:center;
+  margin:8px 12px; padding:7px 10px;
+  background:rgba(0,200,83,0.07); border:1px solid rgba(0,200,83,0.2);
+  border-radius:8px; font-size:0.68rem; color:var(--text-dim);
+}
+
+/* ── STOCK MARKET ── */
+.stk-wrap { display:flex; flex-direction:column; }
+
+.stk-exchange-row {
+  display:flex; gap:5px; padding:8px 12px;
+  overflow-x:auto; flex-shrink:0; scrollbar-width:none;
+}
+.stk-exchange-row::-webkit-scrollbar { display:none; }
+.stk-ex-btn {
+  flex-shrink:0; padding:5px 9px; background:var(--bg2);
+  border:1px solid var(--border2); border-radius:20px;
+  color:var(--text-dim); font-size:0.65rem; font-weight:700;
+  cursor:pointer; transition:all 0.15s; white-space:nowrap;
+}
+.stk-ex-btn:hover { border-color:var(--gold); color:var(--gold); }
+.stk-ex-btn.active {
+  background:rgba(212,175,55,0.15); border-color:var(--gold); color:var(--gold);
+}
+
+.stk-list { display:flex; flex-direction:column; padding:4px 12px 12px; gap:7px; }
+
+.stk-row {
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:11px; padding:9px 11px;
+  transition:border-color 0.15s; cursor:default;
+}
+.stk-row:hover { border-color:var(--gold); }
+
+.stk-row-left { flex:1; min-width:0; }
+.stk-ticker {
+  font-family:'Orbitron',monospace; font-size:0.7rem;
+  font-weight:700; color:var(--text-bright);
+}
+.stk-name { font-size:0.6rem; color:var(--text-dim); margin-top:1px; }
+.stk-held { font-size:0.58rem; color:var(--accent); margin-top:2px; }
+
+.stk-spark { width:60px; height:20px; flex-shrink:0; }
+
+.stk-row-right { text-align:right; flex-shrink:0; min-width:56px; }
+.stk-price { font-family:'Orbitron',monospace; font-size:0.68rem; font-weight:700; }
+.stk-price.up { color:var(--green); }
+.stk-price.down { color:var(--red); }
+.stk-change { font-size:0.58rem; font-weight:700; margin-top:1px; }
+.stk-change.up { color:var(--green); }
+.stk-change.down { color:var(--red); }
+
+.stk-trade-btn {
+  flex-shrink:0; padding:6px 9px;
+  background:rgba(212,175,55,0.1); border:1px solid var(--gold);
+  border-radius:7px; color:var(--gold); font-size:0.58rem;
+  font-weight:700; cursor:pointer; transition:all 0.15s;
+}
+.stk-trade-btn:hover { background:var(--gold); color:#000; }
+
+/* Trade Modal */
+.stk-modal { display:flex; flex-direction:column; gap:12px; }
+.stk-modal-header {
+  display:flex; justify-content:space-between; align-items:flex-start;
+}
+.stk-modal-ticker {
+  font-family:'Orbitron',monospace; font-size:0.9rem;
+  font-weight:700; color:var(--text-bright);
+}
+.stk-modal-name { font-size:0.65rem; color:var(--text-dim); margin-top:2px; }
+.stk-modal-price {
+  font-family:'Orbitron',monospace; font-size:0.9rem;
+  font-weight:700; color:var(--gold);
+}
+.stk-modal-pos {
+  display:flex; gap:10px; flex-wrap:wrap;
+  background:var(--bg3); border-radius:8px; padding:8px 10px;
+  font-size:0.65rem; color:var(--text-dim);
+}
+.stk-modal-inputs { display:flex; flex-direction:column; gap:7px; }
+.stk-modal-label { font-size:0.65rem; color:var(--text-dim); font-weight:700; }
+.stk-modal-qty-row { display:flex; gap:6px; }
+.stk-qty-btn {
+  flex:1; padding:7px; background:var(--bg3);
+  border:1px solid var(--border2); border-radius:7px;
+  color:var(--text-dim); font-size:0.65rem; font-weight:700;
+  cursor:pointer; transition:all 0.15s;
+}
+.stk-qty-btn:hover { border-color:var(--gold); color:var(--gold); }
+.stk-qty-input {
+  width:100%; padding:9px 10px; background:var(--bg3);
+  border:1px solid var(--border2); border-radius:8px;
+  color:var(--text); font-size:0.75rem; outline:none; box-sizing:border-box;
+}
+.stk-qty-input:focus { border-color:var(--accent); }
+.stk-modal-cost { font-size:0.63rem; color:var(--text-dim); }
+.stk-modal-actions { display:flex; gap:8px; }
+.stk-buy-btn {
+  flex:1; padding:10px; background:rgba(0,200,83,0.1);
+  border:1px solid var(--green); border-radius:9px;
+  color:var(--green); font-weight:700; font-size:0.7rem; cursor:pointer; transition:all 0.2s;
+}
+.stk-buy-btn:hover:not(:disabled) { background:var(--green); color:#000; }
+.stk-sell-btn {
+  flex:1; padding:10px; background:rgba(255,68,85,0.08);
+  border:1px solid var(--red); border-radius:9px;
+  color:var(--red); font-weight:700; font-size:0.7rem; cursor:pointer; transition:all 0.2s;
+}
+.stk-sell-btn:hover:not(:disabled) { background:var(--red); color:#fff; }
+.stk-buy-btn:disabled, .stk-sell-btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+/* ── CRYPTO ── */
+.crypto-wrap { display:flex; flex-direction:column; padding:8px 12px; gap:8px; }
+.crypto-last-update {
+  font-size:0.62rem; color:var(--text-dim);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.crypto-refresh-btn {
+  background:transparent; border:none; cursor:pointer;
+  font-size:0.75rem; color:var(--text-dim); padding:2px 6px;
+}
+.crypto-refresh-btn:hover { color:var(--gold); }
+.crypto-list { display:flex; flex-direction:column; gap:7px; }
+.crypto-row {
+  display:flex; align-items:center; gap:9px;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:11px; padding:9px 11px; transition:border-color 0.15s;
+}
+.crypto-row:hover { border-color:var(--gold); }
+.crypto-icon { font-size:1.6rem; flex-shrink:0; }
+.crypto-info { flex:1; min-width:0; }
+.crypto-name { font-size:0.73rem; font-weight:700; color:var(--text-bright); }
+.crypto-ticker { font-size:0.58rem; color:var(--text-dim); }
+.crypto-held { font-size:0.58rem; color:var(--green); margin-top:1px; }
+.crypto-price-col { text-align:right; min-width:70px; flex-shrink:0; }
+.crypto-price {
+  font-family:'Orbitron',monospace; font-size:0.7rem; font-weight:700; color:var(--text-bright);
+}
+.crypto-price.loading { color:var(--text-dim); letter-spacing:2px; }
+.crypto-change { font-size:0.58rem; font-weight:700; margin-top:1px; }
+.crypto-change.up { color:var(--green); }
+.crypto-change.down { color:var(--red); }
+
+/* ── MINER ── */
+.miner-wrap { display:flex; flex-direction:column; padding:10px 12px; gap:12px; }
+.miner-summary {
+  display:flex; gap:8px;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:12px; padding:10px 12px;
+}
+.miner-stat { flex:1; text-align:center; }
+.miner-stat-label { display:block; font-size:0.58rem; color:var(--text-dim); margin-bottom:3px; }
+.miner-stat-val { font-family:'Orbitron',monospace; font-size:0.75rem; font-weight:700; color:var(--text-bright); }
+
+.miner-section {}
+.miner-section-title {
+  font-size:0.72rem; font-weight:700; color:var(--text-dim);
+  margin-bottom:7px; letter-spacing:0.5px;
+}
+.miner-restock-timer { font-size:0.62rem; color:#f4a030; font-weight:600; }
+
+.miner-gpu-list, .miner-shop-list { display:flex; flex-direction:column; gap:7px; }
+
+.miner-gpu-row, .miner-shop-row {
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:10px; padding:8px 10px; transition:border-color 0.15s;
+}
+.miner-gpu-row.has-broken { border-color:rgba(255,68,85,0.4); }
+.miner-shop-row.unavail { opacity:0.45; }
+
+.miner-gpu-emoji { font-size:1.4rem; flex-shrink:0; }
+.miner-gpu-info { flex:1; min-width:0; }
+.miner-gpu-name { font-size:0.72rem; font-weight:700; color:var(--text-bright); }
+.miner-gpu-sub { font-size:0.6rem; color:var(--text-dim); margin-top:1px; }
+.miner-gpu-count { font-size:0.62rem; text-align:right; flex-shrink:0; }
+.miner-shop-price {
+  font-family:'Orbitron',monospace; font-size:0.68rem;
+  font-weight:700; color:var(--gold);
+}
+.miner-shop-stock { font-size:0.58rem; color:var(--text-dim); margin-top:1px; }
+
+.miner-buy-btn, .miner-repair-btn {
+  flex-shrink:0; padding:7px 10px;
+  background:rgba(212,175,55,0.1); border:1px solid var(--gold);
+  border-radius:7px; color:var(--gold); font-size:0.62rem;
+  font-weight:700; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+}
+.miner-buy-btn:hover:not(:disabled), .miner-repair-btn:hover { background:var(--gold); color:#000; }
+.miner-buy-btn:disabled { opacity:0.4; cursor:not-allowed; background:var(--bg3); border-color:var(--border); color:var(--text-dim); }
+.miner-repair-btn { border-color:var(--red); color:var(--red); background:rgba(255,68,85,0.07); }
+.miner-repair-btn:hover { background:var(--red); color:#fff; }

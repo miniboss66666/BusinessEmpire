@@ -111,6 +111,11 @@ const Engine = (() => {
     return total;
   }
 
+  function getMinerIncome() {
+    if (typeof StockMiner === 'undefined') return 0;
+    return StockMiner.getMiningIncome();
+  }
+
   function getRealEstateIncome() {
     if (typeof RealEstatePage === 'undefined') return 0;
     return RealEstatePage.getIncome();
@@ -156,6 +161,7 @@ const Engine = (() => {
     total += getMarketIncome();
     total += getTransportIncome();
     total += getRealEstateIncome();
+    total += getMinerIncome();
     total += getPhoneIncome();
     const skinBuff = SKIN_BUFF[STATE.cardSkin] || 0;
     total *= (1 + skinBuff);
