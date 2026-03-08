@@ -392,30 +392,35 @@ const ProfilePage = (() => {
       // Bước 1: Save data người dùng hiện tại trước để có data mới nhất
       if (STATE.user?.id) await Save.saveToCloud();
 
-      // Bước 2: Query saves join profiles
-      const { data, error } = await DB
-        .from('saves')
-        .select('user_id, data, profiles(username, avatar_url)')
-        .limit(200);
+      // Bước 2: Query saves + profiles riêng (tránh 406 foreign key join)
+      const [savesRes, profilesRes] = await Promise.all([
+        DB.from('saves').select('user_id, data').limit(200),
+        DB.from('profiles').select('id, username, avatar_url'),
+      ]);
 
-      if (error) throw error;
+      if (savesRes.error) throw savesRes.error;
+
+      // Map profiles by id
+      const profileMap = {};
+      (profilesRes.data || []).forEach(p => { profileMap[p.id] = p; });
 
       // Bước 3: Parse totalEarned từ jsonb data field
-      _leaderboardData = (data || [])
+      _leaderboardData = (savesRes.data || [])
         .map(row => {
           let earned = 0;
           try {
             const d = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
             earned = Number(d?.totalEarned) || 0;
           } catch(e) {}
+          const prof = profileMap[row.user_id] || {};
           return {
             user_id:      row.user_id,
-            username:     row.profiles?.username || 'Ẩn danh',
-            avatar_url:   row.profiles?.avatar_url || '',
+            username:     prof.username || 'Ẩn danh',
+            avatar_url:   prof.avatar_url || '',
             total_earned: earned,
           };
         })
-        .filter(r => r.total_earned > 0) // bỏ account chưa kiếm gì
+        .filter(r => r.total_earned > 0)
         .sort((a, b) => b.total_earned - a.total_earned)
         .slice(0, 100);
 
