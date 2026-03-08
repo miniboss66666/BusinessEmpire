@@ -46,7 +46,7 @@ const Nav = (() => {
       case 'home':       if (typeof HomePage     !== 'undefined') HomePage.render();     break;
       case 'business':   if (typeof BusinessPage !== 'undefined') BusinessPage.init(); break;
       case 'realestate': if (typeof RealEstatePage !== 'undefined') RealEstatePage.init(); break;
-      case 'stock':      if (typeof StockPage    !== 'undefined') StockPage.render();    break;
+      case 'stock':      if (typeof StockPage    !== 'undefined') StockPage.init();      break;
       case 'phone':      if (typeof PhonePage    !== 'undefined') PhonePage.render();    break;
       case 'casino':     if (typeof CasinoPage   !== 'undefined') CasinoPage.render();   break;
       case 'underground':if (typeof Underground  !== 'undefined') Underground.render();  break;
