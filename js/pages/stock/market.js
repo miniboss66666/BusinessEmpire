@@ -167,7 +167,7 @@ const StockMarket = (() => {
         <div class="stk-row-left">
           <div class="stk-ticker">${s.ticker}</div>
           <div class="stk-name">${s.name}</div>
-          ${held > 0 ? `<div class="stk-held">📦 ${Format.compact(held)} cổ</div>` : ''}
+          ${held > 0 ? `<div class="stk-held">📦 ${Format.money(held)} cổ</div>` : ''}
         </div>
         <svg class="stk-spark" viewBox="0 0 60 20" preserveAspectRatio="none">
           <polyline points="${sparkPts}" fill="none"
@@ -175,7 +175,7 @@ const StockMarket = (() => {
         </svg>
         <div class="stk-row-right">
           <div class="stk-price ${up ? 'up' : 'down'}">
-            ${ex.currency}${Format.compact(price)}
+            ${ex.currency}${Format.money(price)}
           </div>
           <div class="stk-change ${up ? 'up' : 'down'}">
             ${up ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}%
@@ -203,13 +203,13 @@ const StockMarket = (() => {
             <div class="stk-modal-ticker">${s.ticker}</div>
             <div class="stk-modal-name">${s.name} · ${ex.flag} ${s.exchange}</div>
           </div>
-          <div class="stk-modal-price">${ex.currency}${Format.compact(price)}</div>
+          <div class="stk-modal-price">${ex.currency}${Format.money(price)}</div>
         </div>
 
         ${held > 0 ? `
         <div class="stk-modal-pos">
-          <div>Đang nắm: <strong>${Format.compact(held)} cổ</strong></div>
-          <div>Giá TB: ${ex.currency}${Format.compact(avgPrice)}</div>
+          <div>Đang nắm: <strong>${Format.money(held)} cổ</strong></div>
+          <div>Giá TB: ${ex.currency}${Format.money(avgPrice)}</div>
           <div style="color:${unrealized>=0?'var(--green)':'var(--red)'}">
             P&L: ${unrealized>=0?'+':''}${Format.money(unrealized)}
           </div>
@@ -334,7 +334,7 @@ const StockMarket = (() => {
       const priceEl = row.querySelector('.stk-price');
       const changeEl = row.querySelector('.stk-change');
       if (priceEl) {
-        priceEl.textContent = `${ex.currency}${Format.compact(price)}`;
+        priceEl.textContent = `${ex.currency}${Format.money(price)}`;
         priceEl.className = `stk-price ${up ? 'up' : 'down'}`;
       }
       if (changeEl) {

@@ -127,11 +127,11 @@ const StockCrypto = (() => {
                 <div class="crypto-info">
                   <div class="crypto-name">${c.gameName}</div>
                   <div class="crypto-ticker">${c.ticker}</div>
-                  ${held > 0 ? `<div class="crypto-held">💰 $${Format.compact(heldVal)}</div>` : ''}
+                  ${held > 0 ? `<div class="crypto-held">💰 $${Format.money(heldVal)}</div>` : ''}
                 </div>
                 <div class="crypto-price-col">
                   <div class="crypto-price ${price===0?'loading':''}">
-                    ${price > 0 ? '$' + Format.compact(price) : '···'}
+                    ${price > 0 ? '$' + Format.money(price) : '···'}
                   </div>
                   <div class="crypto-change ${up?'up':'down'}">
                     ${price > 0 ? (up?'▲':'▼') + ' ' + Math.abs(change).toFixed(2) + '%' : ''}
@@ -169,13 +169,13 @@ const StockCrypto = (() => {
             <div class="stk-modal-ticker">${coin.emoji} ${coin.gameName}</div>
             <div class="stk-modal-name">${coin.ticker} · Real: ${coin.realId}</div>
           </div>
-          <div class="stk-modal-price">$${Format.compact(price)}</div>
+          <div class="stk-modal-price">$${Format.money(price)}</div>
         </div>
 
         ${held > 0 ? `
         <div class="stk-modal-pos">
-          <div>Đang nắm: <strong>${Format.compact(held)}</strong> ${coin.ticker}</div>
-          <div>Giá TB: $${Format.compact(avgPrice)}</div>
+          <div>Đang nắm: <strong>${Format.money(held)}</strong> ${coin.ticker}</div>
+          <div>Giá TB: $${Format.money(avgPrice)}</div>
           <div style="color:${unrealized>=0?'var(--green)':'var(--red)'}">
             P&L: ${unrealized>=0?'+':''}${Format.money(unrealized)}
           </div>
@@ -193,7 +193,7 @@ const StockCrypto = (() => {
                  step="0.01" value="${Math.min(100, STATE.balance).toFixed(2)}"
                  placeholder="Số USD muốn dùng">
           <div class="stk-modal-cost" id="crypto-cost">
-            ≈ ${Format.compact(100 / price)} ${coin.ticker}
+            ≈ ${Format.money(100 / price)} ${coin.ticker}
           </div>
         </div>
 
@@ -211,7 +211,7 @@ const StockCrypto = (() => {
 
     function updateCost() {
       const usd = parseFloat(usdInput?.value) || 0;
-      if (costEl) costEl.textContent = `≈ ${Format.compact(usd / price)} ${coin.ticker}`;
+      if (costEl) costEl.textContent = `≈ ${Format.money(usd / price)} ${coin.ticker}`;
     }
     usdInput?.addEventListener('input', updateCost);
 
@@ -235,7 +235,7 @@ const StockCrypto = (() => {
         amount: newAmt,
         avgPrice: (cur.avgPrice * cur.amount + usd) / newAmt,
       };
-      UI.toast(`⚡ Mua ${Format.compact(amount)} ${coin.ticker} — $${Format.compact(usd)}`, 'success');
+      UI.toast(`⚡ Mua ${Format.money(amount)} ${coin.ticker} — $${Format.money(usd)}`, 'success');
       UI.closeModal();
       _refresh();
     });
@@ -247,7 +247,7 @@ const StockCrypto = (() => {
       STATE.balance += total;
       STATE.totalEarned += total;
       delete STATE.stock.cryptoPortfolio[realId];
-      UI.toast(`💰 Bán hết ${coin.gameName} — $${Format.compact(total)}`, 'success');
+      UI.toast(`💰 Bán hết ${coin.gameName} — $${Format.money(total)}`, 'success');
       UI.closeModal();
       _refresh();
     });

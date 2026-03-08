@@ -20,6 +20,7 @@ const Save = (() => {
       settings:      STATE.settings,
       business:      STATE.business,
       realestate:    STATE.realestate,
+      tax:           STATE.tax,
       stock:         STATE.stock,
       phone:         STATE.phone,
       underground:   STATE.underground,
@@ -38,7 +39,7 @@ const Save = (() => {
     const fields = [
       'balance', 'dirtyMoney', 'totalEarned', 'clickLevel',
       'cardSkin', 'unlockedSkins', 'settings', 'business',
-      'realestate', 'stock', 'phone', 'underground',
+      'realestate', 'stock', 'phone', 'underground', 'tax',
       'knowledge', 'stats', 'lastOnline',
     ];
 
