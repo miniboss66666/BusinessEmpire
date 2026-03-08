@@ -1,1 +1,209 @@
-/* placeholder */
+/* ════════════════════════════════════════════
+   PHONE.CSS
+   ════════════════════════════════════════════ */
+.phone-wrap { display:flex; flex-direction:column; height:100%; }
+
+/* Home screen */
+.phone-home { display:flex; flex-direction:column; height:100%; }
+.phone-statusbar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 14px 6px; background:var(--bg2);
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.phone-time {
+  font-family:'Orbitron',monospace; font-size:0.75rem; font-weight:700; color:var(--text-bright);
+}
+.phone-income-pill {
+  font-size:0.65rem; font-weight:700; color:var(--green);
+  background:rgba(0,200,83,0.1); border:1px solid rgba(0,200,83,0.25);
+  padding:3px 8px; border-radius:20px;
+}
+.phone-fame-bar {
+  display:flex; align-items:center; padding:10px 14px;
+  background:var(--bg2); border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.phone-fame-item { flex:1; text-align:center; }
+.phone-fame-val { display:block; font-family:'Orbitron',monospace; font-size:0.72rem; font-weight:700; color:var(--text-bright); }
+.phone-fame-lbl { font-size:0.58rem; color:var(--text-dim); }
+.phone-fame-divider { width:1px; background:var(--border); height:30px; flex-shrink:0; }
+
+/* App grid */
+.phone-app-grid {
+  display:grid; grid-template-columns:repeat(3, 1fr);
+  gap:12px; padding:16px; flex:1;
+}
+.phone-app-icon {
+  display:flex; flex-direction:column; align-items:center;
+  background:var(--app-color, var(--bg2));
+  border:1px solid var(--border2); border-radius:16px;
+  padding:14px 8px 10px; cursor:pointer; position:relative;
+  transition:all 0.15s;
+}
+.phone-app-icon:hover { border-color:var(--gold); transform:scale(1.04); }
+.phone-app-emoji { font-size:1.8rem; margin-bottom:6px; }
+.phone-app-name { font-size:0.62rem; font-weight:700; color:var(--text-dim); text-align:center; }
+.phone-app-badge {
+  position:absolute; top:6px; right:6px;
+  background:var(--red); color:#fff;
+  font-size:0.5rem; font-weight:700; padding:2px 5px;
+  border-radius:10px; white-space:nowrap;
+}
+
+/* App shell */
+.phone-app-shell { display:flex; flex-direction:column; height:100%; }
+.phone-app-topbar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:9px 12px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.phone-back-btn {
+  padding:5px 10px; background:var(--bg3);
+  border:1px solid var(--border2); border-radius:8px;
+  color:var(--text-dim); font-size:0.68rem; font-weight:700; cursor:pointer;
+  transition:all 0.15s;
+}
+.phone-back-btn:hover { color:var(--gold); border-color:var(--gold); }
+.phone-app-title { font-size:0.75rem; font-weight:700; color:var(--text-bright); }
+.phone-app-content { flex:1; overflow-y:auto; }
+
+/* ── Y / TUBEYOU ── */
+.y-wrap { display:flex; flex-direction:column; padding:10px 12px; gap:10px; }
+.y-stats-row {
+  display:flex; gap:0;
+  background:var(--bg2); border:1px solid var(--border2); border-radius:12px; overflow:hidden;
+}
+.y-stat { flex:1; text-align:center; padding:9px 4px; border-right:1px solid var(--border2); }
+.y-stat:last-child { border-right:none; }
+.y-stat-val { display:block; font-family:'Orbitron',monospace; font-size:0.7rem; font-weight:700; color:var(--text-bright); }
+.y-stat-lbl { font-size:0.58rem; color:var(--text-dim); }
+
+.y-viral-bar-wrap {
+  height:5px; background:var(--bg3); border-radius:3px; overflow:hidden;
+}
+.y-viral-bar {
+  height:100%; background:linear-gradient(90deg, #f4a030, var(--gold));
+  border-radius:3px; transition:width 0.3s;
+}
+
+.y-post-section { display:flex; flex-direction:column; gap:6px; align-items:center; }
+.y-post-btn {
+  width:100%; padding:16px; font-family:'Orbitron',monospace;
+  font-size:0.8rem; font-weight:700; letter-spacing:1px;
+  background:linear-gradient(135deg, var(--accent), #0060aa);
+  border:none; border-radius:12px; color:#fff; cursor:pointer; transition:all 0.2s;
+}
+.y-post-btn:hover:not(:disabled) { opacity:0.9; transform:scale(1.02); }
+.y-post-btn.cooling { background:var(--bg3); color:var(--text-dim); border:1px solid var(--border2); }
+.y-post-btn:disabled { cursor:not-allowed; }
+.y-post-hint { font-size:0.62rem; color:var(--text-dim); }
+
+.y-milestones { display:flex; flex-direction:column; gap:6px; }
+.y-milestone-title { font-size:0.68rem; font-weight:700; color:var(--text-dim); margin-bottom:2px; }
+.y-milestone {
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:9px; padding:8px 10px;
+  font-size:0.68rem; color:var(--text-dim);
+}
+.y-milestone.done { border-color:rgba(0,200,83,0.3); color:var(--green); }
+.y-milestone-pct { margin-left:auto; font-size:0.6rem; color:var(--accent); }
+.y-milestone-buff { margin-left:auto; font-size:0.6rem; }
+
+/* ── TEAM ── */
+.team-wrap { padding:10px 12px; display:flex; flex-direction:column; gap:10px; }
+.team-header { text-align:center; padding:6px; }
+.team-title { font-family:'Orbitron',monospace; font-size:0.8rem; font-weight:700; color:var(--text-bright); }
+.team-sub { font-size:0.62rem; color:var(--text-dim); margin-top:3px; }
+.team-none {
+  text-align:center; padding:12px; font-size:0.7rem; color:var(--text-dim);
+  background:var(--bg2); border-radius:10px; border:1px dashed var(--border2);
+}
+.team-current {
+  display:flex; align-items:center; gap:12px;
+  background:rgba(0,200,83,0.07); border:1px solid rgba(0,200,83,0.2);
+  border-radius:12px; padding:12px;
+}
+.team-cur-emoji { font-size:2rem; }
+.team-cur-name { font-weight:700; color:var(--text-bright); font-size:0.78rem; }
+.team-cur-stats { display:flex; gap:10px; margin-top:4px; font-size:0.65rem; }
+.team-tiers { display:flex; flex-direction:column; gap:7px; }
+.team-tier {
+  display:flex; align-items:center;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:11px; padding:10px 12px;
+}
+.team-tier.current { border-color:var(--green); }
+.team-tier.owned { opacity:0.6; }
+.team-tier-left { display:flex; align-items:center; gap:8px; flex:1; }
+.team-tier-emoji { font-size:1.4rem; }
+.team-tier-name { font-size:0.72rem; font-weight:700; color:var(--text-bright); }
+.team-tier-sub { font-size:0.6rem; color:var(--text-dim); margin-top:2px; }
+.team-owned-badge { font-size:1.1rem; }
+.team-hire-btn {
+  padding:8px 12px; background:rgba(212,175,55,0.1);
+  border:1px solid var(--gold); border-radius:8px;
+  color:var(--gold); font-size:0.65rem; font-weight:700;
+  cursor:pointer; transition:all 0.15s; white-space:nowrap;
+}
+.team-hire-btn:hover:not(:disabled) { background:var(--gold); color:#000; }
+.team-hire-btn:disabled { opacity:0.4; cursor:not-allowed; }
+.team-tier-price { font-size:0.68rem; color:var(--text-dim); }
+
+/* ── ASSETS ── */
+.assets-wrap { padding:10px 12px; display:flex; flex-direction:column; gap:10px; }
+.assets-summary {
+  display:flex; gap:0;
+  background:var(--bg2); border:1px solid var(--border2); border-radius:12px; overflow:hidden;
+}
+.assets-sum-item { flex:1; text-align:center; padding:9px 4px; }
+.assets-sum-val { display:block; font-family:'Orbitron',monospace; font-size:0.78rem; font-weight:700; color:var(--text-bright); }
+.assets-sum-lbl { font-size:0.58rem; color:var(--text-dim); }
+.assets-cats {
+  display:flex; gap:5px; overflow-x:auto; flex-shrink:0; scrollbar-width:none; padding-bottom:2px;
+}
+.assets-cats::-webkit-scrollbar { display:none; }
+.assets-cat-btn {
+  flex-shrink:0; padding:5px 10px; background:var(--bg2);
+  border:1px solid var(--border2); border-radius:20px;
+  color:var(--text-dim); font-size:0.63rem; font-weight:700; cursor:pointer; transition:all 0.15s;
+}
+.assets-cat-btn.active { background:rgba(212,175,55,0.15); border-color:var(--gold); color:var(--gold); }
+.assets-list { display:flex; flex-direction:column; gap:7px; }
+.assets-item {
+  display:flex; align-items:center; gap:9px;
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:11px; padding:10px 12px; transition:all 0.15s;
+}
+.assets-item.owned { opacity:0.55; }
+.assets-item:not(.owned):hover { border-color:var(--gold); }
+.assets-emoji { font-size:1.8rem; flex-shrink:0; }
+.assets-info { flex:1; min-width:0; }
+.assets-name { font-size:0.72rem; font-weight:700; color:var(--text-bright); }
+.assets-buff { font-size:0.6rem; color:var(--gold); margin-top:2px; }
+.assets-price { font-family:'Orbitron',monospace; font-size:0.68rem; font-weight:700; color:var(--gold); text-align:right; margin-bottom:4px; }
+.assets-buy-btn {
+  padding:6px 10px; background:rgba(212,175,55,0.1);
+  border:1px solid var(--gold); border-radius:7px;
+  color:var(--gold); font-size:0.62rem; font-weight:700; cursor:pointer; transition:all 0.15s;
+}
+.assets-buy-btn:hover:not(:disabled) { background:var(--gold); color:#000; }
+.assets-buy-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* Auction */
+.auction-wrap { display:flex; flex-direction:column; gap:10px; padding:4px; }
+.auction-item {
+  display:flex; align-items:center; gap:12px;
+  background:var(--bg2); border:1px solid var(--border2); border-radius:12px; padding:14px;
+}
+.auction-emoji { font-size:2.5rem; }
+.auction-name { font-size:0.78rem; font-weight:700; color:var(--text-bright); }
+.auction-buff { font-size:0.62rem; color:var(--gold); margin-top:3px; }
+.auction-status {
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;
+  background:var(--bg2); border-radius:9px; padding:9px 11px; font-size:0.7rem;
+}
+.auction-my-bid {
+  text-align:center; padding:8px; border-radius:9px; font-size:0.7rem; font-weight:700;
+}
+.auction-my-bid.leading { background:rgba(0,200,83,0.1); color:var(--green); border:1px solid rgba(0,200,83,0.3); }
+.auction-my-bid.losing { background:rgba(255,68,85,0.1); color:var(--red); border:1px solid rgba(255,68,85,0.3); }
+.auction-actions { display:flex; gap:8px; }

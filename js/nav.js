@@ -47,9 +47,9 @@ const Nav = (() => {
       case 'business':   if (typeof BusinessPage !== 'undefined') BusinessPage.init(); break;
       case 'realestate': if (typeof RealEstatePage !== 'undefined') RealEstatePage.init(); break;
       case 'stock':      if (typeof StockPage    !== 'undefined') StockPage.init();      break;
-      case 'phone':      if (typeof PhonePage    !== 'undefined') PhonePage.render();    break;
+      case 'phone':      if (typeof PhonePage    !== 'undefined') PhonePage.init();      break;
       case 'casino':     if (typeof CasinoPage   !== 'undefined') CasinoPage.render();   break;
-      case 'underground':if (typeof Underground  !== 'undefined') Underground.render();  break;
+      case 'underground':if (typeof UndergroundPage !== 'undefined') UndergroundPage.init(); break;
       case 'knowledge':  if (typeof Knowledge    !== 'undefined') Knowledge.render();    break;
       case 'profile':    if (typeof ProfilePage  !== 'undefined') ProfilePage.init();  break;
     }

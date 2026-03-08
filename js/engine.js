@@ -289,6 +289,8 @@ const Engine = (() => {
     if (typeof HomePage !== 'undefined' && HomePage.tickSave) HomePage.tickSave();
     if (typeof BusinessLemonade !== 'undefined' && BusinessLemonade.tickIncome) BusinessLemonade.tickIncome();
     if (typeof BusinessMarket   !== 'undefined' && BusinessMarket.tick)        BusinessMarket.tick();
+    if (typeof PhonePage         !== 'undefined' && PhonePage.tick)         PhonePage.tick();
+    if (typeof UndergroundPage   !== 'undefined' && UndergroundPage.tick)   UndergroundPage.tick();
   }
 
   // ============================================
