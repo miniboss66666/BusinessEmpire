@@ -45,6 +45,7 @@ const BusinessMarket = (() => {
   const STORE_LEVEL_CONSUME = [1, 1.5, 3, 6, 10]; // lv1→5
 
   let currentTab = 'warehouse'; // 'warehouse' | store key
+  let currentView = 'dashboard'; // 'dashboard' | 'detail'
   let restockInput = 100; // số lượng muốn nhập
 
   // ── HELPERS ───────────────────────────────
@@ -88,25 +89,91 @@ const BusinessMarket = (() => {
 
   // ── RENDER HTML ───────────────────────────
   function renderHTML() {
+    if (currentView === 'detail') return renderDetail();
+    return renderDashboard();
+  }
+
+  // ── DASHBOARD CARDS ───────────────────────
+  function renderDashboard() {
+    const s = st();
+    const whPct = warehouseMax() > 0 ? (s.warehouse.stock / warehouseMax() * 100).toFixed(0) : 0;
+
+    const CARDS = [
+      {
+        key: 'warehouse',
+        emoji: '📦',
+        name: 'Kho Hàng',
+        desc: `Cấp ${s.warehouse.level} · ${Format.money(s.warehouse.stock)} đv`,
+        stats: [
+          { label: 'Dung lượng', value: `${whPct}% đầy` },
+          { label: 'Manager', value: s.manager > 0 ? `Cấp ${s.manager}` : 'Chưa có' },
+          { label: 'Tiêu/phút', value: Format.money(totalConsumePerMin()) },
+        ],
+        income: null,
+        disabled: false,
+      },
+      ...Object.entries(STORE_DATA).map(([key, d]) => {
+        const store = s.stores[key];
+        return {
+          key, emoji: d.emoji, name: d.name,
+          desc: store.isMultinational ? '🌐 Đa Quốc Gia' : `${store.owned} chi nhánh`,
+          stats: [
+            { label: 'Chi nhánh', value: `${store.owned}/${store.isMultinational ? d.maxMulti : d.maxBranch}` },
+            { label: 'Cấp', value: `LV.${store.level}` },
+            { label: 'Thu nhập', value: Format.money(storeProfitPerMin(key)) + '/ph', green: true },
+          ],
+          income: storeProfitPerMin(key),
+          disabled: false,
+        };
+      }),
+      ...COMING_SOON_STORES.map(s => ({
+        key: s.emoji, emoji: s.emoji, name: s.name,
+        desc: 'Sắp ra mắt...', stats: [], income: null, disabled: true,
+      })),
+    ];
+
     return `
-      <div class="mkt-wrap">
-        <!-- Sub-tabs -->
-        <div class="mkt-tabs">
-          <button class="mkt-tab-btn ${currentTab==='warehouse'?'active':''}" data-tab="warehouse">
-            📦 Kho Hàng
-          </button>
-          ${Object.entries(STORE_DATA).map(([key,d]) => `
-            <button class="mkt-tab-btn ${currentTab===key?'active':''}" data-tab="${key}">
-              ${d.emoji}
-            </button>
-          `).join('')}
-          ${COMING_SOON_STORES.map(s => `
-            <button class="mkt-tab-btn disabled" disabled title="${s.name} — Coming Soon" style="opacity:0.35;cursor:not-allowed">
-              ${s.emoji}
-            </button>
+      <div class="mkt-dash-wrap">
+        <div class="mkt-dash-list">
+          ${CARDS.map(card => `
+            <div class="mkt-dash-card ${card.disabled ? 'mkt-soon' : ''}">
+              <div class="mkt-dash-top">
+                <span class="mkt-dash-emoji">${card.emoji}</span>
+                <div class="mkt-dash-info">
+                  <div class="mkt-dash-name">${card.name}</div>
+                  <div class="mkt-dash-desc">${card.desc}</div>
+                </div>
+                ${card.income !== null ? `<div class="mkt-dash-income">${Format.money(card.income)}<span style="font-size:0.58rem;color:var(--text-dim)">/ph</span></div>` : ''}
+              </div>
+              ${card.stats.length ? `
+              <div class="mkt-dash-stats">
+                ${card.stats.map(s => `
+                  <div class="mkt-dash-stat">
+                    <span>${s.label}</span>
+                    <span class="${s.green ? 'mkt-green' : ''}">${s.value}</span>
+                  </div>`).join('')}
+              </div>` : ''}
+              <button class="mkt-manage-btn ${card.disabled ? 'disabled' : ''}"
+                      data-key="${card.key}" ${card.disabled ? 'disabled' : ''}>
+                ${card.disabled ? '🔒 COMING SOON' : '⚙️ QUẢN LÝ'}
+              </button>
+            </div>
           `).join('')}
         </div>
-        <div id="mkt-content">
+      </div>`;
+  }
+
+  // ── DETAIL VIEW ───────────────────────────
+  function renderDetail() {
+    const label = currentTab === 'warehouse' ? '📦 Kho Hàng'
+      : `${STORE_DATA[currentTab]?.emoji} ${STORE_DATA[currentTab]?.name}`;
+    return `
+      <div class="mkt-detail-wrap">
+        <div class="mkt-detail-topbar">
+          <button class="mkt-back-btn" id="btn-mkt-back">← Quay Lại</button>
+          <span class="mkt-detail-title">${label}</span>
+        </div>
+        <div class="mkt-detail-content" id="mkt-content">
           ${renderTabContent()}
         </div>
       </div>`;
@@ -339,17 +406,33 @@ const BusinessMarket = (() => {
 
   // ── BIND EVENTS ───────────────────────────
   function bindEvents() {
-    // Sub-tabs
-    document.querySelectorAll('.mkt-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentTab = btn.dataset.tab;
-        document.querySelectorAll('.mkt-tab-btn').forEach(b =>
-          b.classList.toggle('active', b.dataset.tab === currentTab));
-        document.getElementById('mkt-content').innerHTML = renderTabContent();
-        bindContentEvents();
+    if (currentView === 'detail') {
+      // Back button
+      document.getElementById('btn-mkt-back')?.addEventListener('click', () => {
+        currentView = 'dashboard';
+        _refreshFull();
       });
-    });
-    bindContentEvents();
+      // Sub-tab buttons (chỉ trong warehouse detail)
+      document.querySelectorAll('.mkt-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentTab = btn.dataset.tab;
+          document.querySelectorAll('.mkt-tab-btn').forEach(b =>
+            b.classList.toggle('active', b.dataset.tab === currentTab));
+          document.getElementById('mkt-content').innerHTML = renderTabContent();
+          bindContentEvents();
+        });
+      });
+      bindContentEvents();
+    } else {
+      // Dashboard: manage buttons
+      document.querySelectorAll('.mkt-manage-btn:not(.disabled)').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentTab = btn.dataset.key;
+          currentView = 'detail';
+          _refreshFull();
+        });
+      });
+    }
   }
 
   function bindContentEvents() {
@@ -492,11 +575,24 @@ const BusinessMarket = (() => {
   }
 
   function _refresh() {
-    const content = document.getElementById('mkt-content');
-    if (!content) return;
-    content.innerHTML = renderTabContent();
-    bindContentEvents();
+    if (currentView === 'detail') {
+      const content = document.getElementById('mkt-content');
+      if (!content) return;
+      content.innerHTML = renderTabContent();
+      bindContentEvents();
+    } else {
+      _refreshFull();
+    }
     if (typeof BusinessPage !== 'undefined') BusinessPage.tick();
+  }
+
+  function _refreshFull() {
+    const wrap = document.getElementById('biz-detail-content');
+    if (!wrap) return;
+    wrap.innerHTML = renderHTML();
+    bindEvents();
+    const detailEl = document.getElementById('biz-detail-income');
+    if (detailEl) detailEl.textContent = Format.money(getIncome()) + '/phút';
   }
 
   // Engine tick: tiêu hàng từ kho mỗi phút

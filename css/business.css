@@ -919,3 +919,71 @@
   overflow-y: auto;
   padding: 12px;
 }
+
+/* ════════════════════════════════════════════
+   MARKET DASHBOARD CARDS
+   ════════════════════════════════════════════ */
+.mkt-dash-wrap { padding: 10px 12px; }
+.mkt-dash-list { display: flex; flex-direction: column; gap: 10px; }
+
+.mkt-dash-card {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 13px 14px;
+  display: flex; flex-direction: column; gap: 9px;
+  transition: border-color 0.2s;
+}
+.mkt-dash-card:hover:not(.mkt-soon) { border-color: var(--gold); }
+.mkt-dash-card.mkt-soon { opacity: 0.4; }
+
+.mkt-dash-top { display: flex; align-items: center; gap: 11px; }
+.mkt-dash-emoji { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+.mkt-dash-info { flex: 1; min-width: 0; }
+.mkt-dash-name {
+  font-size: 0.78rem; font-weight: 700; color: var(--text-bright);
+}
+.mkt-dash-desc { font-size: 0.63rem; color: var(--text-dim); margin-top: 2px; }
+.mkt-dash-income {
+  font-family: 'Orbitron', monospace; font-size: 0.78rem;
+  font-weight: 700; color: var(--green); text-align: right; flex-shrink: 0;
+}
+
+.mkt-dash-stats {
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--bg3); border-radius: 8px; padding: 8px 10px;
+}
+.mkt-dash-stat {
+  display: flex; justify-content: space-between;
+  font-size: 0.65rem; color: var(--text-dim);
+}
+.mkt-dash-stat .mkt-green { color: var(--green); font-weight: 700; }
+
+.mkt-manage-btn {
+  width: 100%; padding: 10px;
+  background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05));
+  border: 1px solid var(--gold); border-radius: 10px;
+  color: var(--gold); font-family: 'Orbitron', monospace;
+  font-size: 0.68rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.mkt-manage-btn:hover:not(.disabled) { background: var(--gold); color: #000; }
+.mkt-manage-btn.disabled {
+  background: var(--bg3); border-color: var(--border);
+  color: var(--text-dim); cursor: not-allowed;
+}
+
+/* Detail view topbar */
+.mkt-detail-wrap { display: flex; flex-direction: column; height: 100%; }
+.mkt-detail-topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px 8px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.mkt-back-btn {
+  padding: 6px 12px; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--text-dim); font-size: 0.68rem; font-weight: 700;
+  cursor: pointer; flex-shrink: 0; transition: all 0.15s;
+}
+.mkt-back-btn:hover { color: var(--text); border-color: var(--gold); }
+.mkt-detail-title {
+  font-size: 0.75rem; font-weight: 700; color: var(--text-bright);
+}
+.mkt-detail-content { flex: 1; overflow-y: auto; }
