@@ -70,7 +70,12 @@ const STATE = {
 
   // --- Tax ---
   tax: {
-    items: [],      // [{ id, type:'business'|'realestate', name, amount, deadline, suspended }]
+    items: [
+      // Business luôn phải nộp thuế khi có income
+      { id:'lemonade',  type:'business', name:'🍋 Nước Chanh', amount:0, deadline: Date.now() + 72*3600_000, suspended:false },
+      { id:'market',    type:'business', name:'🏪 Market',     amount:0, deadline: Date.now() + 72*3600_000, suspended:false },
+      { id:'transport', type:'business', name:'🚗 Vận Tải',    amount:0, deadline: Date.now() + 72*3600_000, suspended:false },
+    ],
     serverRate: {
       business:    0.083,   // 8.3%/phút của income_per_min
       realestate:  0.012,   // 1.2%/phút của giá mua

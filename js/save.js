@@ -52,6 +52,24 @@ const Save = (() => {
         }
       }
     }
+
+    // Đảm bảo 3 business tax items luôn tồn tại sau load
+    const BIZ_TAX = [
+      { id:'lemonade',  type:'business', name:'🍋 Nước Chanh' },
+      { id:'market',    type:'business', name:'🏪 Market' },
+      { id:'transport', type:'business', name:'🚗 Vận Tải' },
+    ];
+    if (STATE.tax && Array.isArray(STATE.tax.items)) {
+      BIZ_TAX.forEach(biz => {
+        if (!STATE.tax.items.find(i => i.id === biz.id)) {
+          STATE.tax.items.unshift({
+            ...biz, amount: 0,
+            deadline: Date.now() + 72 * 3600_000,
+            suspended: false,
+          });
+        }
+      });
+    }
   }
 
   // Deep merge: giữ key mặc định nếu save cũ chưa có

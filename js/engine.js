@@ -6,6 +6,7 @@
 const Engine = (() => {
 
   let tickInterval = null;
+  let tickCount = 0; // đếm số tick để biết khi nào qua 1 phút
 
   // ============================================
   // DATA - Click power
@@ -216,6 +217,46 @@ const Engine = (() => {
   // ============================================
   // Tick (mỗi 1 giây)
   // ============================================
+  // ============================================
+  // TAX TICK — chạy mỗi phút
+  // ============================================
+  function taxTick() {
+    const tax = STATE.tax;
+    if (!tax || !tax.items) return;
+    const rate = tax.serverRate || { business: 0.083, realestate: 0.012 };
+    const now = Date.now();
+
+    tax.items.forEach(item => {
+      if (item.suspended) return; // đã đình chỉ thì không tích thêm
+
+      if (item.type === 'business') {
+        // 8.3% của income/phút của business đó
+        let income = 0;
+        if (item.id === 'lemonade' && typeof BusinessLemonade !== 'undefined') {
+          income = BusinessLemonade.getIncome();
+        } else if (item.id === 'market' && typeof BusinessMarket !== 'undefined') {
+          income = BusinessMarket.getIncome();
+        } else if (item.id === 'transport' && typeof BusinessTransport !== 'undefined') {
+          income = BusinessTransport.getIncome();
+        }
+        item.amount = (item.amount || 0) + income * rate.business;
+
+      } else if (item.type === 'realestate') {
+        // 1.2% của giá mua / phút
+        item.amount = (item.amount || 0) + (item.purchasePrice || 0) * rate.realestate;
+      }
+
+      // Kiểm tra deadline
+      if (!item.deadline) item.deadline = now + 72 * 3600_000;
+      if (now > item.deadline && item.amount > 0) {
+        item.suspended = true;
+        if (typeof UI !== 'undefined') {
+          UI.toast('⛔ ' + item.name + ' bị đình chỉ vì nợ thuế!', 'error');
+        }
+      }
+    });
+  }
+
   function tick() {
     // Chỉ cộng passive vào balance — click đã cộng trực tiếp khi ấn
     const passivePerSec = STATE.passiveIncomePerMin / 60;
@@ -233,6 +274,10 @@ const Engine = (() => {
 
     // Recalc (cập nhật CPS mới nhất vào incomePerMin)
     recalcIncome();
+
+    // Tax tick — chạy mỗi 60 giây (60 ticks)
+    tickCount++;
+    if (tickCount % 60 === 0) taxTick();
 
     if (typeof UI !== 'undefined') UI.updateHUD();
   }
