@@ -380,6 +380,15 @@ const HomePage = (() => {
     });
   };
 
-  return { init, render, openSkinPicker };
+  // Update "X giây trước" mỗi giây — gọi từ engine tick
+  function tickSave() {
+    const el = document.getElementById('settings-last-save');
+    if (!el) return;
+    el.textContent = STATE.lastSave
+      ? '🕐 ' + timeSince(STATE.lastSave) + ' trước'
+      : 'Chưa lưu lần nào';
+  }
+
+  return { init, render, openSkinPicker, tickSave };
 
 })();

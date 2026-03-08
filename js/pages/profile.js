@@ -214,7 +214,7 @@ const ProfilePage = (() => {
 
   function openTaxModal() {
     const tax = STATE.tax || { items: [] };
-    const items = tax.items || [];
+    const items = (tax.items || []).filter(i => i.amount > 0 || i.suspended);
     const totalOwed = items.reduce((s, i) => s + (i.amount || 0), 0);
     const rate = tax.serverRate || { business: 0.083, realestate: 0.012 };
 
@@ -269,6 +269,30 @@ const ProfilePage = (() => {
         </div>
       </div>
     `);
+
+    // Auto-refresh modal mỗi 5s để cập nhật số thuế mới
+    const _taxRefreshTimer = setInterval(() => {
+      if (!document.getElementById('tax-item-list') && !document.querySelector('.tax-empty')) {
+        clearInterval(_taxRefreshTimer); return;
+      }
+      // Chỉ update số tiền, không re-open modal
+      const newItems = (STATE.tax?.items || []).filter(i => i.amount > 0 || i.suspended);
+      newItems.forEach((item, idx) => {
+        const amtEl = document.querySelectorAll('.tax-item-amount')[idx];
+        if (amtEl) amtEl.textContent = Format.money(item.amount);
+        const timeEl = document.querySelectorAll('.tax-item-meta')[idx];
+        if (timeEl) timeEl.innerHTML = _timeUntilDeadline(item.deadline);
+      });
+      // Update tổng
+      const totalEl = document.querySelector('.tax-footer-total span:last-child');
+      const newTotal = newItems.reduce((s,i) => s + (i.amount||0), 0);
+      if (totalEl) totalEl.textContent = Format.money(newTotal);
+      const payAllBtn = document.getElementById('btn-tax-pay-all');
+      if (payAllBtn) {
+        payAllBtn.textContent = '💸 NỘP TẤT CẢ — ' + Format.money(newTotal);
+        payAllBtn.disabled = STATE.balance < newTotal;
+      }
+    }, 5000);
 
     // Bind nộp từng cái
     document.querySelectorAll('.tax-pay-one-btn').forEach(btn => {

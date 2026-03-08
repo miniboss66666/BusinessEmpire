@@ -280,6 +280,8 @@ const Engine = (() => {
     if (tickCount % 60 === 0) taxTick();
 
     if (typeof UI !== 'undefined') UI.updateHUD();
+    if (typeof HomePage !== 'undefined' && HomePage.tickSave) HomePage.tickSave();
+    if (typeof BusinessLemonade !== 'undefined' && BusinessLemonade.tickIncome) BusinessLemonade.tickIncome();
   }
 
   // ============================================

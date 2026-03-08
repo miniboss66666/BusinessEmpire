@@ -8,12 +8,18 @@
 const BusinessMarket = (() => {
 
   // ── DATA ──────────────────────────────────
+  const COMING_SOON_STORES = [
+    { emoji:'🍔', name:'Đồ Ăn Nhanh' },
+    { emoji:'🏥', name:'Bệnh Viện' },
+    { emoji:'🏦', name:'Ngân Hàng' },
+  ];
+
   const STORE_DATA = {
-    retail:      { emoji:'🛍️', name:'Bán Lẻ',    sellPerMin:2, sellPrice:4, costPerUnit:2, gpPrice:100,   gpMultiPrice:10_000,  maxBranch:300, maxMulti:1000 },
-    toy:         { emoji:'🧸', name:'Đồ Chơi',   sellPerMin:4, sellPrice:5, costPerUnit:2, gpPrice:150,   gpMultiPrice:15_000,  maxBranch:300, maxMulti:1000 },
-    supermarket: { emoji:'🛒', name:'Siêu Thị',  sellPerMin:7, sellPrice:6, costPerUnit:2, gpPrice:500,   gpMultiPrice:25_000,  maxBranch:300, maxMulti:1000 },
-    pharmacy:    { emoji:'💊', name:'Thuốc',      sellPerMin:2, sellPrice:8, costPerUnit:2, gpPrice:10_000,gpMultiPrice:50_000,  maxBranch:300, maxMulti:1000 },
-    electronics: { emoji:'📱', name:'Điện Tử',   sellPerMin:4, sellPrice:7, costPerUnit:2, gpPrice:1_000, gpMultiPrice:35_000,  maxBranch:300, maxMulti:1000 },
+    retail:      { emoji:'🛍️', name:'Bán Lẻ',    sellPerMin:2, sellPrice:4, costPerUnit:2, gpPrice:100,   gpMultiPrice:10000,  maxBranch:300, maxMulti:1000 },
+    toy:         { emoji:'🧸', name:'Đồ Chơi',   sellPerMin:4, sellPrice:5, costPerUnit:2, gpPrice:150,   gpMultiPrice:15000,  maxBranch:300, maxMulti:1000 },
+    supermarket: { emoji:'🛒', name:'Siêu Thị',  sellPerMin:7, sellPrice:6, costPerUnit:2, gpPrice:500,   gpMultiPrice:25000,  maxBranch:300, maxMulti:1000 },
+    pharmacy:    { emoji:'💊', name:'Thuốc',      sellPerMin:2, sellPrice:8, costPerUnit:2, gpPrice:10000,gpMultiPrice:50000,  maxBranch:300, maxMulti:1000 },
+    electronics: { emoji:'📱', name:'Điện Tử',   sellPerMin:4, sellPrice:7, costPerUnit:2, gpPrice:1000, gpMultiPrice:35000,  maxBranch:300, maxMulti:1000 },
   };
 
   // Kho: level → max stock
@@ -29,10 +35,10 @@ const BusinessMarket = (() => {
   const MANAGER_DATA = [
     null, // 0 = không có
     { level:1, restockPerMin:100,  extraCost:0.10, price:500 },
-    { level:2, restockPerMin:300,  extraCost:0.12, price:2_000 },
-    { level:3, restockPerMin:700,  extraCost:0.14, price:8_000 },
-    { level:4, restockPerMin:1500, extraCost:0.16, price:25_000 },
-    { level:5, restockPerMin:5000, extraCost:0.20, price:100_000 },
+    { level:2, restockPerMin:300,  extraCost:0.12, price:2000 },
+    { level:3, restockPerMin:700,  extraCost:0.14, price:8000 },
+    { level:4, restockPerMin:1500, extraCost:0.16, price:25000 },
+    { level:5, restockPerMin:5000, extraCost:0.20, price:100000 },
   ];
 
   // Store level → consume multiplier (2→10/phút)
@@ -92,6 +98,11 @@ const BusinessMarket = (() => {
           ${Object.entries(STORE_DATA).map(([key,d]) => `
             <button class="mkt-tab-btn ${currentTab===key?'active':''}" data-tab="${key}">
               ${d.emoji}
+            </button>
+          `).join('')}
+          ${COMING_SOON_STORES.map(s => `
+            <button class="mkt-tab-btn disabled" disabled title="${s.name} — Coming Soon" style="opacity:0.35;cursor:not-allowed">
+              ${s.emoji}
             </button>
           `).join('')}
         </div>

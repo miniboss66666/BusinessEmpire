@@ -11,23 +11,23 @@ const BusinessTransport = (() => {
   // ── DATA ──────────────────────────────────
   const VEHICLE_DATA = {
     shipper:    { emoji:'🏍️', name:'Shipper',       price:500,       incomePerMin:5,   appBoost:true },
-    taxi:       { emoji:'🚕', name:'Taxi',           price:2_000,     incomePerMin:15,  appBoost:true },
-    ambulance:  { emoji:'🚑', name:'Cứu Thương',    price:8_000,     incomePerMin:40,  appBoost:false },
-    bus:        { emoji:'🚌', name:'Xe Bus',         price:15_000,    incomePerMin:60,  appBoost:false },
-    firetruck:  { emoji:'🚒', name:'Cứu Hỏa',       price:20_000,    incomePerMin:80,  appBoost:false },
-    smalltruck: { emoji:'🚚', name:'Xe Tải Nhỏ',    price:10_000,    incomePerMin:50,  appBoost:true },
-    container:  { emoji:'🚛', name:'Container',     price:50_000,    incomePerMin:150, appBoost:true },
+    taxi:       { emoji:'🚕', name:'Taxi',           price:2000,     incomePerMin:15,  appBoost:true },
+    ambulance:  { emoji:'🚑', name:'Cứu Thương',    price:8000,     incomePerMin:40,  appBoost:false },
+    bus:        { emoji:'🚌', name:'Xe Bus',         price:15000,    incomePerMin:60,  appBoost:false },
+    firetruck:  { emoji:'🚒', name:'Cứu Hỏa',       price:20000,    incomePerMin:80,  appBoost:false },
+    smalltruck: { emoji:'🚚', name:'Xe Tải Nhỏ',    price:10000,    incomePerMin:50,  appBoost:true },
+    container:  { emoji:'🚛', name:'Container',     price:50000,    incomePerMin:150, appBoost:true },
   };
 
   const RAILWAY_DATA = {
-    tram:      { emoji:'🚋', name:'Tram',        gpPrice:30_000,  stationPrice:50_000,  trainPrice:20_000,  incomePerTrainPerMin:200 },
-    metro:     { emoji:'🚇', name:'Metro',       gpPrice:50_000,  stationPrice:150_000, trainPrice:80_000,  incomePerTrainPerMin:500 },
-    freight:   { emoji:'🚂', name:'Tàu Hàng',   gpPrice:75_000,  stationPrice:200_000, trainPrice:120_000, incomePerTrainPerMin:800 },
-    oil:       { emoji:'🚃', name:'Tàu Dầu',    gpPrice:100_000, stationPrice:250_000, trainPrice:180_000, incomePerTrainPerMin:1_200 },
-    highspeed: { emoji:'🚆', name:'Cao Tốc',    gpPrice:150_000, stationPrice:500_000, trainPrice:300_000, incomePerTrainPerMin:2_000 },
+    tram:      { emoji:'🚋', name:'Tram',        gpPrice:30000,  stationPrice:50000,  trainPrice:20000,  incomePerTrainPerMin:200 },
+    metro:     { emoji:'🚇', name:'Metro',       gpPrice:50000,  stationPrice:150000, trainPrice:80000,  incomePerTrainPerMin:500 },
+    freight:   { emoji:'🚂', name:'Tàu Hàng',   gpPrice:75000,  stationPrice:200000, trainPrice:120000, incomePerTrainPerMin:800 },
+    oil:       { emoji:'🚃', name:'Tàu Dầu',    gpPrice:100000, stationPrice:250000, trainPrice:180000, incomePerTrainPerMin:1200 },
+    highspeed: { emoji:'🚆', name:'Cao Tốc',    gpPrice:150000, stationPrice:500000, trainPrice:300000, incomePerTrainPerMin:2000 },
   };
 
-  const APP_PRICE = 100_000;
+  const APP_PRICE = 100000;
   const TRAINS_PER_STATION = 6;
   const MAX_STATIONS = 20;
   const MAX_STATIONS_MULTI = 100;
@@ -35,13 +35,13 @@ const BusinessTransport = (() => {
   // Garage upgrade tiers
   const GARAGE_UPGRADES = [
     { size:50,     price:0 },
-    { size:100,    price:1_000 },
-    { size:250,    price:5_000 },
-    { size:500,    price:20_000 },
-    { size:1_000,  price:80_000 },
-    { size:2_500,  price:300_000 },
-    { size:5_000,  price:1_000_000 },
-    { size:10_000, price:5_000_000 },
+    { size:100,    price:1000 },
+    { size:250,    price:5000 },
+    { size:500,    price:20000 },
+    { size:1000,  price:80000 },
+    { size:2500,  price:300000 },
+    { size:5000,  price:1000000 },
+    { size:10000, price:5000000 },
   ];
 
   let currentSection = 'road'; // 'road' | 'railway'
@@ -175,6 +175,10 @@ const BusinessTransport = (() => {
             </div>` : `<div class="vehicle-garage-full">🔒 Garage đầy</div>`}
           </div>`;
         }).join('')}
+      <!-- Coming Soon -->
+        <div class="vehicle-card" style="opacity:0.35;pointer-events:none;justify-content:center;text-align:center">
+          <div style="font-size:0.72rem;color:var(--text-dim);font-weight:700;padding:8px">❓ Coming Soon</div>
+        </div>
       </div>`;
   }
 
@@ -244,11 +248,15 @@ const BusinessTransport = (() => {
             <!-- Đa quốc gia -->
             ${!isMulti && stations >= MAX_STATIONS ? `
             <button class="rail-multi-btn" data-key="${key}" id="btn-rail-multi-${key}"
-                    ${STATE.balance < 500_000 ? 'disabled' : ''}>
-              🌐 MỞ RỘNG ĐA QUỐC GIA — ${Format.money(500_000)}
+                    ${STATE.balance < 500000 ? 'disabled' : ''}>
+              🌐 MỞ RỘNG ĐA QUỐC GIA — ${Format.money(500000)}
             </button>` : ''}
           </div>`;
         }).join('')}
+      <!-- Coming Soon -->
+        <div class="rail-card" style="opacity:0.35;pointer-events:none;text-align:center">
+          <div style="font-size:0.72rem;color:var(--text-dim);font-weight:700;padding:8px">❓ Coming Soon</div>
+        </div>
       </div>`;
   }
 
@@ -315,7 +323,13 @@ const BusinessTransport = (() => {
         const max = garageMax();
         const used = garageUsed();
         const n = buyAmounts[key] || 1;
-        const count = n === 'Max' ? max - used : Math.min(n, max - used);
+        let count;
+        if (n === 'Max') {
+          const maxByMoney = VEHICLE_DATA[key].price > 0 ? Math.floor(STATE.balance / VEHICLE_DATA[key].price) : 0;
+          count = Math.min(maxByMoney, max - used);
+        } else {
+          count = Math.min(n, max - used);
+        }
         const cost = count * VEHICLE_DATA[key].price;
         if (count <= 0 || STATE.balance < cost) { UI.toast('Không đủ tiền hoặc garage đầy!','error'); return; }
         STATE.balance -= cost;
@@ -368,9 +382,9 @@ const BusinessTransport = (() => {
 
       // Multinational
       document.getElementById(`btn-rail-multi-${key}`)?.addEventListener('click', () => {
-        if (STATE.balance < 500_000) return;
-        STATE.balance -= 500_000;
-        STATE.stats.spentBusiness += 500_000;
+        if (STATE.balance < 500000) return;
+        STATE.balance -= 500000;
+        STATE.stats.spentBusiness += 500000;
         rail.isMultinational = true;
         UI.toast(`🌐 ${data.name} đa quốc gia!`, 'success');
         _refresh();

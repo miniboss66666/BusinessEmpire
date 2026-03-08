@@ -8,14 +8,14 @@
 const BusinessLemonade = (() => {
 
   const LEVELS = [
-    { name: 'Quầy Nước Chanh',   emoji: '🍋', incomePerUnit: 1,        pricePerUnit: 100,      licensePrice: 10_000 },
-    { name: 'Cửa Hàng Chanh',    emoji: '🏪', incomePerUnit: 10,       pricePerUnit: 1_000,    licensePrice: 100_000 },
-    { name: 'Công Ty Chanh',     emoji: '🏢', incomePerUnit: 100,      pricePerUnit: 10_000,   licensePrice: 1_000_000 },
-    { name: 'Tập Đoàn Đa QG',   emoji: '🌐', incomePerUnit: 1_000,    pricePerUnit: 100_000,  licensePrice: 10_000_000 },
-    { name: 'Đa Hành Tinh',      emoji: '🪐', incomePerUnit: 10_000,   pricePerUnit: 1_000_000,licensePrice: 100_000_000 },
-    { name: 'Liên Sao',          emoji: '⭐', incomePerUnit: 100_000,  pricePerUnit: 10_000_000,licensePrice: 1_000_000_000 },
-    { name: 'Đa Ngân Hà',        emoji: '🌌', incomePerUnit: 1_000_000,pricePerUnit: 100_000_000,licensePrice: 10_000_000_000 },
-    { name: 'Đa Vũ Trụ MAX',     emoji: '♾️', incomePerUnit: 10_000_000,pricePerUnit:1_000_000_000,licensePrice: null },
+    { name: 'Quầy Nước Chanh',   emoji: '🍋', incomePerUnit: 1,        pricePerUnit: 100,      licensePrice: 10000 },
+    { name: 'Cửa Hàng Chanh',    emoji: '🏪', incomePerUnit: 10,       pricePerUnit: 1000,    licensePrice: 100000 },
+    { name: 'Công Ty Chanh',     emoji: '🏢', incomePerUnit: 100,      pricePerUnit: 10000,   licensePrice: 1000000 },
+    { name: 'Tập Đoàn Đa QG',   emoji: '🌐', incomePerUnit: 1000,    pricePerUnit: 100000,  licensePrice: 10000000 },
+    { name: 'Đa Hành Tinh',      emoji: '🪐', incomePerUnit: 10000,   pricePerUnit: 1000000,licensePrice: 100000000 },
+    { name: 'Liên Sao',          emoji: '⭐', incomePerUnit: 100000,  pricePerUnit: 10000000,licensePrice: 1000000000 },
+    { name: 'Đa Ngân Hà',        emoji: '🌌', incomePerUnit: 1000000,pricePerUnit: 100000000,licensePrice: 10000000000 },
+    { name: 'Đa Vũ Trụ MAX',     emoji: '♾️', incomePerUnit: 10000000,pricePerUnit:1000000000,licensePrice: null },
   ];
 
   const MAX_UNITS = 1000;
@@ -183,7 +183,13 @@ const BusinessLemonade = (() => {
   // BUY HELPERS
   // ─────────────────────────────────────────
   function _getBuyCount(owned) {
-    if (buyAmount === 'Max') return Math.max(0, MAX_UNITS - owned);
+    const lv = LEVELS[getState().level - 1];
+    if (!lv) return 0;
+    if (buyAmount === 'Max') {
+      // Max theo tiền đang có, không vượt slot còn trống
+      const maxByMoney = lv.pricePerUnit > 0 ? Math.floor(STATE.balance / lv.pricePerUnit) : 0;
+      return Math.min(maxByMoney, MAX_UNITS - owned);
+    }
     return Math.min(buyAmount, MAX_UNITS - owned);
   }
 
@@ -276,6 +282,17 @@ const BusinessLemonade = (() => {
     const lv = currentLevel();
     const el = document.getElementById('lemon-price-preview');
     if (el) el.textContent = _buyPreviewText(lv, st.owned);
+  }
+
+  // Gọi từ engine tick để update income realtime
+  function tickIncome() {
+    const incEl = document.getElementById('lemon-income-total');
+    if (incEl) incEl.textContent = Format.money(getIncome());
+    // Update topbar income trong detail view
+    const detailEl = document.getElementById('biz-detail-income');
+    if (detailEl) detailEl.textContent = Format.money(getIncome()) + '/phút';
+    // Update nút mua (giá thay đổi theo balance)
+    _updateBuyBtn();
   }
 
   function _refresh() {
