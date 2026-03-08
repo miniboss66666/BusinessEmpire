@@ -8,12 +8,6 @@
 const BusinessMarket = (() => {
 
   // ── DATA ──────────────────────────────────
-  const COMING_SOON_STORES = [
-    { emoji:'🍔', name:'Đồ Ăn Nhanh' },
-    { emoji:'🏥', name:'Bệnh Viện' },
-    { emoji:'🏦', name:'Ngân Hàng' },
-  ];
-
   const STORE_DATA = {
     retail:      { emoji:'🛍️', name:'Bán Lẻ',    sellPerMin:2, sellPrice:4, costPerUnit:2, gpPrice:100,   gpMultiPrice:10000,  maxBranch:300, maxMulti:1000 },
     toy:         { emoji:'🧸', name:'Đồ Chơi',   sellPerMin:4, sellPrice:5, costPerUnit:2, gpPrice:150,   gpMultiPrice:15000,  maxBranch:300, maxMulti:1000 },
@@ -126,10 +120,7 @@ const BusinessMarket = (() => {
           disabled: false,
         };
       }),
-      ...COMING_SOON_STORES.map(s => ({
-        key: s.emoji, emoji: s.emoji, name: s.name,
-        desc: 'Sắp ra mắt...', stats: [], income: null, disabled: true,
-      })),
+      { key:'cs', emoji:'❓', name:'Coming Soon', desc:'Sắp ra mắt...', stats:[], income:null, disabled:true },
     ];
 
     return `
