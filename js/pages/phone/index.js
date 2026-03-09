@@ -71,8 +71,8 @@ const PhonePage = (() => {
                  style="--app-color:${app.color}">
               <div class="phone-app-emoji">${app.emoji}</div>
               <div class="phone-app-name">${app.name}</div>
-              ${app.id === 'y' ? `<div class="phone-app-badge">${Format.money(state.followers)}</div>` : ''}
-              ${app.id === 'tubeyou' ? `<div class="phone-app-badge">${Format.money(yt.subscribers)}</div>` : ''}
+              ${app.id === 'y' && state.followers > 0 ? `<div class="phone-app-badge">${Format.money(state.followers)}</div>` : ''}
+              ${app.id === 'tubeyou' && yt.subscribers > 0 ? `<div class="phone-app-badge">${Format.money(yt.subscribers)}</div>` : ''}
             </div>`).join('')}
         </div>
       </div>`;
