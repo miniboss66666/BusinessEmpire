@@ -116,16 +116,24 @@
 
 /* ===== HOME BUTTON — nổi bật hơn ===== */
 .nav-btn[data-page="home"] {
-  /* không active: xám bình thường */
+  background: #1a2e1a;           /* xám xanh lá khi không active */
+  border: 1px solid rgba(0,180,60,0.15);
+}
+
+.nav-btn[data-page="home"]:hover {
+  background: #1e3a1e;
+  color: #66dd66;
 }
 
 .nav-btn[data-page="home"].active {
-  background: #1a3a5c;           /* nền xanh navy */
-  color: var(--accent);          /* icon+text xanh sáng */
+  background: #0d2e0d;
+  color: #00e64d;
+  border: 1px solid rgba(0,230,77,0.4);
+  box-shadow: 0 0 12px rgba(0,200,60,0.25);
 }
 
 .nav-btn[data-page="home"].active::before {
-  background: var(--accent);     /* indicator cũng xanh */
+  background: #00e64d;
 }
 
 /* ===== ICON & LABEL ===== */
@@ -151,4 +159,41 @@
   .nav-label {
     font-size: 0.55rem;
   }
+}
+
+/* ===== CASINO BUTTON — gold tint ===== */
+.nav-btn[data-page="casino"] {
+  background: rgba(40,30,5,0.6);
+}
+.nav-btn[data-page="casino"]:hover {
+  background: rgba(50,38,8,0.8);
+  color: #ddaa22;
+}
+.nav-btn[data-page="casino"].active {
+  background: linear-gradient(135deg, #1a1205, #0d0a02);
+  color: var(--gold);
+  border: 1px solid rgba(200,160,20,0.3);
+  box-shadow: 0 0 12px rgba(180,140,10,0.2);
+}
+.nav-btn[data-page="casino"].active::before {
+  background: var(--gold);
+}
+
+/* ===== UNDERGROUND BUTTON — red danger ===== */
+.nav-btn[data-page="underground"] {
+  background: rgba(30,5,5,0.6);
+}
+.nav-btn[data-page="underground"]:hover {
+  background: rgba(50,8,8,0.8);
+  color: #cc3333;
+}
+.nav-btn[data-page="underground"].active {
+  background: linear-gradient(135deg, #1a0404, #0d0202);
+  color: #ff3333;
+  border: 1px solid rgba(180,20,20,0.35);
+  box-shadow: 0 0 12px rgba(180,0,0,0.2);
+  text-shadow: 0 0 8px rgba(255,30,30,0.4);
+}
+.nav-btn[data-page="underground"].active::before {
+  background: #ff2222;
 }

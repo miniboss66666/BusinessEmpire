@@ -296,11 +296,16 @@ const BusinessLemonade = (() => {
   }
 
   function _refresh() {
-    // Re-render toàn bộ tab
-    const content = document.getElementById('biz-content');
-    if (!content) return;
-    content.innerHTML = renderHTML();
-    bindEvents();
+    const content = document.getElementById('biz-detail-content');
+    if (content) {
+      content.innerHTML = renderHTML();
+      bindEvents();
+    }
+    // Update topbar income
+    const detailEl = document.getElementById('biz-detail-income');
+    if (detailEl) detailEl.textContent = Format.money(getIncome()) + '/phút';
+    // Update balance hiển thị nếu có
+    if (typeof UI !== 'undefined' && UI.updateBalance) UI.updateBalance();
     if (typeof BusinessPage !== 'undefined') BusinessPage.tick();
   }
 
@@ -326,6 +331,6 @@ const BusinessLemonade = (() => {
     _updatePreview();
   }
 
-  return { renderHTML, bindEvents, getIncome, tick };
+  return { renderHTML, bindEvents, getIncome, tick, tickIncome };
 
 })();

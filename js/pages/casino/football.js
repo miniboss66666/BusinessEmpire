@@ -1,9 +1,12 @@
+// @ts-nocheck
 /* ============================================
-   CASINO/FOOTBALL.JS
-   - Bóng di chuyển tự do, KHÔNG bị kẹt
-   - Chỉ bẻ lái khi đến gần "receiver" được chỉ định
-   - Possession: đội giỏi giữ bóng lâu hơn
-   - Cầu thủ đứng đội hình, di chuyển theo vai trò
+   CASINO/FOOTBALL.JS — Simulation thực tế hơn
+   Mỗi cầu thủ có bóng → 4 action:
+     - PASS: truyền cho đồng đội, có % bị cướp
+     - DRIBBLE: rê bóng tiến lên, đội kia cố cướp
+     - SHOOT: sút khi đủ điều kiện
+     - RECEIVE: đón bóng đang bay tới
+   Đội kia: pressing, intercept khi bóng bay
    ============================================ */
 
 const CasinoFootball = (() => {
@@ -17,10 +20,6 @@ const CasinoFootball = (() => {
     'Ajax','Porto','Benfica',
   ];
 
-  // Rating ảnh hưởng possession & độ chính xác truyền bóng
-  const TEAM_RATINGS = {};
-  ALL_TEAMS.forEach(t => { TEAM_RATINGS[t] = 55 + Math.floor(Math.random() * 40); });
-
   const TEAM_COLORS = [
     '#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261',
     '#264653','#a8dadc','#6a994e','#bc4749','#7209b7',
@@ -28,39 +27,37 @@ const CasinoFootball = (() => {
   ];
 
   const W = 320, H = 180;
-  const PR = 6.5;
+  const PR = 6;          // player radius
+  const BR = 4.5;        // ball radius
+  const TACKLE_RANGE = 14;
+  const RECEIVE_RANGE = 12;
+  const SHOOT_RANGE_MAX = W * 0.38; // khoảng cách tối đa được sút
 
   const FORMATIONS = {
     '4-4-2': [
       {x:.08,y:.5,role:'gk'},
       {x:.22,y:.2,role:'def'},{x:.22,y:.4,role:'def'},{x:.22,y:.6,role:'def'},{x:.22,y:.8,role:'def'},
-      {x:.45,y:.15,role:'mid'},{x:.45,y:.38,role:'mid'},{x:.45,y:.62,role:'mid'},{x:.45,y:.85,role:'mid'},
-      {x:.68,y:.35,role:'fwd'},{x:.68,y:.65,role:'fwd'},
+      {x:.45,y:.18,role:'mid'},{x:.45,y:.38,role:'mid'},{x:.45,y:.62,role:'mid'},{x:.45,y:.82,role:'mid'},
+      {x:.7,y:.38,role:'fwd'},{x:.7,y:.62,role:'fwd'},
     ],
     '4-3-3': [
       {x:.08,y:.5,role:'gk'},
       {x:.22,y:.18,role:'def'},{x:.22,y:.38,role:'def'},{x:.22,y:.62,role:'def'},{x:.22,y:.82,role:'def'},
-      {x:.45,y:.25,role:'mid'},{x:.45,y:.5,role:'mid'},{x:.45,y:.75,role:'mid'},
-      {x:.68,y:.18,role:'fwd'},{x:.68,y:.5,role:'fwd'},{x:.68,y:.82,role:'fwd'},
+      {x:.45,y:.28,role:'mid'},{x:.45,y:.5,role:'mid'},{x:.45,y:.72,role:'mid'},
+      {x:.7,y:.18,role:'fwd'},{x:.7,y:.5,role:'fwd'},{x:.7,y:.82,role:'fwd'},
     ],
     '3-5-2': [
       {x:.08,y:.5,role:'gk'},
       {x:.22,y:.25,role:'def'},{x:.22,y:.5,role:'def'},{x:.22,y:.75,role:'def'},
-      {x:.42,y:.12,role:'mid'},{x:.42,y:.33,role:'mid'},{x:.42,y:.5,role:'mid'},{x:.42,y:.67,role:'mid'},{x:.42,y:.88,role:'mid'},
-      {x:.68,y:.35,role:'fwd'},{x:.68,y:.65,role:'fwd'},
+      {x:.38,y:.1,role:'mid'},{x:.38,y:.3,role:'mid'},{x:.38,y:.5,role:'mid'},{x:.38,y:.7,role:'mid'},{x:.38,y:.9,role:'mid'},
+      {x:.7,y:.38,role:'fwd'},{x:.7,y:.62,role:'fwd'},
     ],
     '4-2-3-1': [
       {x:.08,y:.5,role:'gk'},
       {x:.2,y:.18,role:'def'},{x:.2,y:.4,role:'def'},{x:.2,y:.6,role:'def'},{x:.2,y:.82,role:'def'},
       {x:.38,y:.35,role:'mid'},{x:.38,y:.65,role:'mid'},
-      {x:.55,y:.15,role:'mid'},{x:.55,y:.5,role:'mid'},{x:.55,y:.85,role:'mid'},
-      {x:.72,y:.5,role:'fwd'},
-    ],
-    '5-3-2': [
-      {x:.08,y:.5,role:'gk'},
-      {x:.2,y:.1,role:'def'},{x:.2,y:.3,role:'def'},{x:.2,y:.5,role:'def'},{x:.2,y:.7,role:'def'},{x:.2,y:.9,role:'def'},
-      {x:.45,y:.25,role:'mid'},{x:.45,y:.5,role:'mid'},{x:.45,y:.75,role:'mid'},
-      {x:.68,y:.35,role:'fwd'},{x:.68,y:.65,role:'fwd'},
+      {x:.56,y:.15,role:'mid'},{x:.56,y:.5,role:'mid'},{x:.56,y:.85,role:'mid'},
+      {x:.74,y:.5,role:'fwd'},
     ],
   };
 
@@ -68,24 +65,25 @@ const CasinoFootball = (() => {
 
   let canvas, ctx, animFrame;
 
+  // ── Game state ──
   let S = {
     phase: 'select',
     matches: [], selected: null, betSide: null,
     bet: 0, elapsed: 0, score: [0,0],
     interval: null,
     players: [],
-    // BALL STATE
-    ball: { x: W/2, y: H/2, vx: 0, vy: 0 },
-    // Cầu thủ đang "nhận bóng" tiếp theo (index trong players[])
-    // Bóng đi về phía này, khi đến gần thì bẻ lái tiếp
+    ball: { x:W/2, y:H/2, vx:0, vy:0 },
+    // Cầu thủ đang cầm bóng (index), -1 = bóng tự do
+    holder: -1,
+    // Cầu thủ đang chạy đón bóng (receiver)
     receiver: -1,
-    receiverTarget: null, // {x,y} điểm đến sau khi nhận
-    // Đội đang có possession ('home'|'away')
-    possession: 'home',
-    possessionTimer: 0,
+    // Action hiện tại của holder
+    action: null,       // 'dribble'|'pass'|'shoot'|null
+    actionTimer: 0,     // tick còn lại trước khi thực hiện action
     pendingGoals: [],
     nextGoal: null,
     goalAnim: 0,
+    passIntercepted: false,
   };
 
   // ═══════════════════════════════════════════
@@ -96,28 +94,26 @@ const CasinoFootball = (() => {
     S.matches = [];
     for (let i = 0; i < 6; i++) {
       const h = shuffled[i*2], a = shuffled[i*2+1];
-      const hRating = TEAM_RATINGS[h], aRating = TEAM_RATINGS[a];
-      const hColor = TEAM_COLORS[i % TEAM_COLORS.length];
-      const aColor = TEAM_COLORS[(i+7) % TEAM_COLORS.length];
-      const hForm = FORMATION_NAMES[Math.floor(Math.random() * FORMATION_NAMES.length)];
-      const aForm = FORMATION_NAMES[Math.floor(Math.random() * FORMATION_NAMES.length)];
-      // Odds dựa theo rating
-      const ratingDiff = (hRating - aRating) / 100;
-      const homeOdds = +(Math.max(1.3, 2.1 - ratingDiff * 2 + Math.random() * 0.4)).toFixed(2);
-      const awayOdds = +(Math.max(1.3, 2.1 + ratingDiff * 2 + Math.random() * 0.4)).toFixed(2);
-      const drawOdds = +(2.8 + Math.random() * 1.5).toFixed(2);
-      // Pre-gen goals — đội mạnh hơn ghi nhiều hơn
-      const n = Math.floor(Math.random() * 5);
+      const hRating = 55 + Math.floor(Math.random()*40);
+      const aRating = 55 + Math.floor(Math.random()*40);
+      const hColor  = TEAM_COLORS[i % TEAM_COLORS.length];
+      const aColor  = TEAM_COLORS[(i+7) % TEAM_COLORS.length];
+      const hForm   = FORMATION_NAMES[Math.floor(Math.random()*FORMATION_NAMES.length)];
+      const aForm   = FORMATION_NAMES[Math.floor(Math.random()*FORMATION_NAMES.length)];
+      const diff    = (hRating - aRating) / 100;
+      const homeOdds = +(Math.max(1.25, 2.0 - diff*2.5 + Math.random()*0.4)).toFixed(2);
+      const awayOdds = +(Math.max(1.25, 2.0 + diff*2.5 + Math.random()*0.4)).toFixed(2);
+      const drawOdds = +(2.8 + Math.random()*1.5).toFixed(2);
+      const n = Math.floor(Math.random()*5);
       const goals = [];
       for (let g = 0; g < n; g++) {
-        const homeChance = hRating / (hRating + aRating);
         goals.push({
-          minute: Math.floor(Math.random() * 89) + 1,
-          team: Math.random() < homeChance ? 'home' : 'away',
+          minute: Math.floor(Math.random()*88)+1,
+          team: Math.random() < hRating/(hRating+aRating) ? 'home' : 'away',
           scored: false,
         });
       }
-      goals.sort((a, b) => a.minute - b.minute);
+      goals.sort((a,b) => a.minute - b.minute);
       S.matches.push({ home:h, away:a, hColor, aColor, hForm, aForm,
         homeOdds, awayOdds, drawOdds, goals, hRating, aRating });
     }
@@ -129,27 +125,543 @@ const CasinoFootball = (() => {
   function initPlayers(idx) {
     const m = S.matches[idx];
     S.players = [];
-    FORMATIONS[m.hForm].forEach((p, i) => {
-      S.players.push({ team:'home', role:p.role, color:m.hColor,
-        bx:p.x*W, by:p.y*H, x:p.x*W, y:p.y*H, id:i });
+    FORMATIONS[m.hForm].forEach((p,i) => {
+      S.players.push({
+        team:'home', role:p.role, color:m.hColor,
+        bx:p.x*W, by:p.y*H,
+        x:p.x*W, y:p.y*H,
+        vx:0, vy:0,
+        id: S.players.length,
+        rating: m.hRating,
+      });
     });
-    FORMATIONS[m.aForm].forEach((p, i) => {
-      S.players.push({ team:'away', role:p.role, color:m.aColor,
-        bx:(1-p.x)*W, by:p.y*H, x:(1-p.x)*W, y:p.y*H, id:i });
+    FORMATIONS[m.aForm].forEach((p,i) => {
+      S.players.push({
+        team:'away', role:p.role, color:m.aColor,
+        bx:(1-p.x)*W, by:p.y*H,
+        x:(1-p.x)*W, y:p.y*H,
+        vx:0, vy:0,
+        id: S.players.length,
+        rating: m.aRating,
+      });
     });
-    S.ball = { x:W/2, y:H/2, vx:1.2, vy:0.5 };
+    S.ball   = { x:W/2, y:H/2, vx:0, vy:0 };
+    S.holder = -1;
     S.receiver = -1;
-    S.receiverTarget = null;
-    S.possession = Math.random() < 0.5 ? 'home' : 'away';
-    S.possessionTimer = 0;
+    S.action = null;
+    S.actionTimer = 0;
     S.goalAnim = 0;
-
-    // Kick off — chọn receiver đầu tiên
-    scheduleNextPass();
+    // Kick off — đội home giữ bóng, chọn cầu thủ mid gần nhất
+    const kickOff = S.players.find(p => p.team==='home' && p.role==='mid');
+    if (kickOff) {
+      kickOff.x = W/2 + 5; kickOff.y = H/2;
+      S.holder = kickOff.id;
+      S.ball.x = kickOff.x; S.ball.y = kickOff.y;
+      decideAction(kickOff.id);
+    }
   }
 
   // ═══════════════════════════════════════════
-  // RENDER HTML
+  // DECIDE ACTION — cầu thủ đang giữ bóng
+  // ═══════════════════════════════════════════
+  function decideAction(pid) {
+    const p = S.players[pid];
+    if (!p) return;
+    const m = S.matches[S.selected];
+    const isHome = p.team === 'home';
+    const goalX  = isHome ? W-8 : 8;
+    const distToGoal = Math.abs(p.x - goalX);
+
+    // --- Chọn action dựa theo vị trí và role ---
+    let pShoot = 0, pPass = 0, pDribble = 0;
+
+    if (p.role === 'gk') {
+      pPass = 1.0; // GK luôn phát bóng dài
+    } else if (distToGoal < W*0.2 && p.role === 'fwd') {
+      // Gần gôn, fwd → ưu tiên sút
+      pShoot   = 0.55;
+      pPass    = 0.30;
+      pDribble = 0.15;
+    } else if (distToGoal < W*0.3) {
+      pShoot   = 0.20;
+      pPass    = 0.50;
+      pDribble = 0.30;
+    } else {
+      pPass    = 0.45;
+      pDribble = 0.40;
+      pShoot   = 0.15;
+    }
+
+    const r = Math.random();
+    let action;
+    if (r < pShoot)              action = 'shoot';
+    else if (r < pShoot + pPass) action = 'pass';
+    else                         action = 'dribble';
+
+    // Nếu không có đồng đội để truyền → dribble
+    if (action === 'pass') {
+      const target = choosePasstarget(pid);
+      if (!target) action = 'dribble';
+    }
+
+    S.action = action;
+    // Delay trước khi thực hiện (mô phỏng cầu thủ "chuẩn bị")
+    S.actionTimer = action === 'dribble' ? 8 : 5;
+  }
+
+  // ═══════════════════════════════════════════
+  // CHOOSE PASS TARGET
+  // ═══════════════════════════════════════════
+  function choosePasstarget(pid) {
+    const p = S.players[pid];
+    const isHome = p.team === 'home';
+    const goalX  = isHome ? W : 0;
+    const mates  = S.players.filter(m =>
+      m.team === p.team && m.id !== pid && m.role !== 'gk'
+    );
+    if (!mates.length) return null;
+    // Ưu tiên đồng đội tiến hơn (gần gôn hơn) và không bị bọc
+    const scored = mates.map(m => {
+      const fwd = isHome ? (m.x - p.x) : (p.x - m.x); // dương = tiến
+      const distGoal = Math.abs(m.x - goalX);
+      // Tránh truyền ngược quá xa
+      if (fwd < -60) return { m, score: -999 };
+      return { m, score: fwd * 0.5 + (W - distGoal) * 0.3 + Math.random()*20 };
+    });
+    scored.sort((a,b) => b.score - a.score);
+    return scored[0]?.score > -999 ? scored[0].m : null;
+  }
+
+  // ═══════════════════════════════════════════
+  // EXECUTE PASS
+  // ═══════════════════════════════════════════
+  function executePass(pid) {
+    const p   = S.players[pid];
+    const tgt = choosePasstarget(pid);
+    if (!tgt) { S.action = 'dribble'; S.actionTimer = 6; return; }
+
+    const m     = S.matches[S.selected];
+    const rating= p.rating;
+
+    // Tính % bị intercept — đội yếu bị nhiều hơn
+    const interceptChance = Math.max(0.05, 0.35 - (rating - 55) / 200);
+    const pressers = S.players.filter(q =>
+      q.team !== p.team && q.role !== 'gk'
+    );
+    // Kiểm tra có cầu thủ đối phương nằm giữa đường truyền không
+    const inLane = pressers.filter(q => {
+      const t = Math.max(0, Math.min(1,
+        ((q.x-p.x)*(tgt.x-p.x)+(q.y-p.y)*(tgt.y-p.y)) /
+        (Math.pow(Math.hypot(tgt.x-p.x,tgt.y-p.y),2)||1)
+      ));
+      const cx = p.x + t*(tgt.x-p.x), cy = p.y + t*(tgt.y-p.y);
+      return Math.hypot(q.x-cx,q.y-cy) < 18;
+    });
+
+    const finalIntercept = Math.min(0.7, interceptChance + inLane.length * 0.12);
+    const intercepted    = Math.random() < finalIntercept;
+
+    const dx = tgt.x - p.x, dy = tgt.y - p.y;
+    const d  = Math.hypot(dx,dy) || 1;
+    const spd = 3.5 + Math.random() * 1.5;
+    // Thêm sai số nếu đội yếu
+    const err  = (100 - rating) / 500;
+    S.ball.vx  = (dx/d)*spd + (Math.random()-0.5)*err*spd;
+    S.ball.vy  = (dy/d)*spd + (Math.random()-0.5)*err*spd;
+    S.ball.x   = p.x; S.ball.y = p.y;
+    S.holder   = -1;
+
+    if (intercepted && inLane.length > 0) {
+      // Bóng bị cướp — set receiver là người chặn
+      const interceptor = inLane[Math.floor(Math.random()*inLane.length)];
+      S.receiver = interceptor.id;
+      S.passIntercepted = true;
+    } else {
+      S.receiver = tgt.id;
+      S.passIntercepted = false;
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // EXECUTE SHOOT
+  // ═══════════════════════════════════════════
+  function executeShoot(pid) {
+    const p  = S.players[pid];
+    const m  = S.matches[S.selected];
+    const isHome = p.team === 'home';
+    const goalX  = isHome ? W-8 : 8;
+    const goalY  = H/2 + (Math.random()-0.5)*28;
+
+    const dx = goalX - p.x, dy = goalY - p.y;
+    const d  = Math.hypot(dx,dy)||1;
+    const spd = 4.5 + Math.random()*2;
+    S.ball.vx = (dx/d)*spd;
+    S.ball.vy = (dy/d)*spd;
+    S.ball.x  = p.x; S.ball.y = p.y;
+    S.holder  = -1;
+    S.receiver = -1;
+    S.action   = null;
+  }
+
+  // ═══════════════════════════════════════════
+  // SIMULATE TICK
+  // ═══════════════════════════════════════════
+  function simulate() {
+    const b = S.ball;
+
+    // ── Holder đang cầm bóng ──
+    if (S.holder >= 0) {
+      const p = S.players[S.holder];
+      if (!p) { S.holder = -1; return; }
+
+      // Bóng theo cầu thủ
+      b.x = p.x; b.y = p.y; b.vx = 0; b.vy = 0;
+
+      // Action timer đếm ngược
+      if (S.actionTimer > 0) {
+        S.actionTimer--;
+        // Di chuyển nhẹ khi đang dribble
+        if (S.action === 'dribble') moveDribbler(p);
+        return;
+      }
+
+      // Thực hiện action
+      if (S.action === 'pass')   { executePass(S.holder); return; }
+      if (S.action === 'shoot')  { executeShoot(S.holder); return; }
+      if (S.action === 'dribble') {
+        // Dribble thêm 1 bước rồi decide lại
+        moveDribbler(p);
+        if (Math.random() < 0.15) { decideAction(S.holder); }
+        return;
+      }
+      decideAction(S.holder);
+      return;
+    }
+
+    // ── Bóng đang bay ──
+    b.x += b.vx;
+    b.y += b.vy;
+    b.vx *= 0.97;
+    b.vy *= 0.97;
+
+    // Bounce biên trên/dưới
+    if (b.y < 7)   { b.vy =  Math.abs(b.vy)*0.8; b.y = 7; }
+    if (b.y > H-7) { b.vy = -Math.abs(b.vy)*0.8; b.y = H-7; }
+
+    // Tốc độ tối thiểu để bóng không đứng yên
+    const spd = Math.hypot(b.vx, b.vy);
+    if (spd < 0.3 && S.holder < 0) {
+      // Bóng dừng — đội nào gần nhất lấy
+      const nearest = S.players
+        .filter(p => p.role !== 'gk')
+        .sort((a,z) => Math.hypot(a.x-b.x,a.y-b.y) - Math.hypot(z.x-b.x,z.y-b.y))[0];
+      if (nearest && Math.hypot(nearest.x-b.x, nearest.y-b.y) < 30) {
+        pickupBall(nearest.id);
+      } else {
+        b.vx = (Math.random()-0.5)*0.5;
+        b.vy = (Math.random()-0.5)*0.5;
+      }
+    }
+
+    // ── Receiver đón bóng ──
+    if (S.receiver >= 0) {
+      const recv = S.players[S.receiver];
+      if (recv) {
+        const dist = Math.hypot(b.x-recv.x, b.y-recv.y);
+        if (dist < RECEIVE_RANGE) {
+          pickupBall(S.receiver);
+          return;
+        }
+      }
+    }
+
+    // ── Pressing — đội không có bóng cố cướp ──
+    const attackers = S.players.filter(p =>
+      p.team !== (S.receiver >= 0 ? S.players[S.receiver]?.team : null) &&
+      p.role !== 'gk'
+    );
+    for (const p of attackers) {
+      const dist = Math.hypot(b.x-p.x, b.y-p.y);
+      if (dist < TACKLE_RANGE) {
+        const m = S.matches[S.selected];
+        // Tỷ lệ cướp được
+        const tackleChance = 0.12 + (100 - p.rating) / 800;
+        if (Math.random() < tackleChance) {
+          pickupBall(p.id);
+          return;
+        }
+      }
+    }
+
+    // ── GOAL check ──
+    const inLeftGoal  = b.x < 14 && b.y > H/2-22 && b.y < H/2+22;
+    const inRightGoal = b.x > W-14 && b.y > H/2-22 && b.y < H/2+22;
+
+    if (b.x < 8 && !inLeftGoal)  {
+      b.vx = Math.abs(b.vx)*0.7; b.x = 10;
+      pickupNearby('home');
+    }
+    if (b.x > W-8 && !inRightGoal) {
+      b.vx = -Math.abs(b.vx)*0.7; b.x = W-10;
+      pickupNearby('away');
+    }
+
+    if ((inLeftGoal || inRightGoal) && S.goalAnim === 0) {
+      handleGoal(inRightGoal ? 'home' : 'away', inLeftGoal, inRightGoal);
+    }
+
+    // ── Di chuyển tất cả cầu thủ ──
+    movePlayers();
+
+    if (S.goalAnim > 0) S.goalAnim--;
+  }
+
+  // ═══════════════════════════════════════════
+  // PICKUP / TACKLE HELPERS
+  // ═══════════════════════════════════════════
+  function pickupBall(pid) {
+    const p = S.players[pid];
+    if (!p) return;
+    S.holder   = pid;
+    S.receiver = -1;
+    S.passIntercepted = false;
+    S.ball.x   = p.x;
+    S.ball.y   = p.y;
+    S.ball.vx  = 0; S.ball.vy = 0;
+    decideAction(pid);
+  }
+
+  function pickupNearby(team) {
+    const gk = S.players.find(p => p.team === team && p.role === 'gk');
+    if (gk) pickupBall(gk.id);
+  }
+
+  // ═══════════════════════════════════════════
+  // DRIBBLE MOVEMENT
+  // ═══════════════════════════════════════════
+  function moveDribbler(p) {
+    const isHome = p.team === 'home';
+    const goalX  = isHome ? W-15 : 15;
+    // Tiến về phía gôn, lắc lư nhẹ
+    const tx = p.x + (isHome ? 8 : -8) + (Math.random()-0.5)*6;
+    const ty = p.y + (Math.random()-0.5)*10;
+    p.x += (Math.max(8, Math.min(W-8, tx)) - p.x) * 0.25;
+    p.y += (Math.max(8, Math.min(H-8, ty)) - p.y) * 0.25;
+
+    // Kiểm tra đối thủ cận chiến → cướp bóng
+    const m = S.matches[S.selected];
+    const opponents = S.players.filter(q =>
+      q.team !== p.team && q.role !== 'gk' &&
+      Math.hypot(q.x-p.x, q.y-p.y) < TACKLE_RANGE
+    );
+    if (opponents.length > 0) {
+      const tackleChance = 0.07 + opponents.length * 0.04;
+      if (Math.random() < tackleChance) {
+        const tackler = opponents[Math.floor(Math.random()*opponents.length)];
+        pickupBall(tackler.id);
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // MOVE ALL PLAYERS
+  // ═══════════════════════════════════════════
+  function movePlayers() {
+    const b = S.ball;
+    S.players.forEach((p, i) => {
+      const isHome   = p.team === 'home';
+      const hasBall  = S.holder === i;
+      const isRecv   = S.receiver === i;
+      const hasTeamBall = S.holder >= 0 && S.players[S.holder]?.team === p.team;
+
+      if (hasBall) return; // holder di chuyển riêng
+
+      let tx = p.bx, ty = p.by, spd = 0.04;
+
+      if (p.role === 'gk') {
+        // GK bám theo y bóng khi bóng gần
+        const distBall = Math.abs(b.x - p.bx);
+        tx = p.bx;
+        ty = distBall < W*0.35
+          ? p.by*0.2 + b.y*0.8
+          : p.by*0.6 + b.y*0.4;
+        ty = Math.max(H/2-25, Math.min(H/2+25, ty));
+        spd = 0.08;
+
+      } else if (isRecv) {
+        // Receiver chạy ra đón bóng
+        tx = b.x + (isHome ? -10 : 10);
+        ty = b.y;
+        spd = 0.18;
+
+      } else if (!hasTeamBall) {
+        // Đội không có bóng — PRESSING
+        if (p.role === 'fwd') {
+          // Fwd press cao lên gần holder
+          const holderPos = S.holder >= 0 ? S.players[S.holder] : b;
+          tx = holderPos.x + (Math.random()-0.5)*20;
+          ty = holderPos.y + (Math.random()-0.5)*20;
+          spd = 0.08;
+        } else if (p.role === 'mid') {
+          // Mid: chặn passing lane, tiến về phía bóng vừa phải
+          tx = b.x*0.5 + p.bx*0.5 + (Math.random()-0.5)*15;
+          ty = b.y*0.4 + p.by*0.6;
+          spd = 0.055;
+        } else {
+          // Def: về đội hình, cover vùng
+          tx = p.bx + (isHome ? 0.04*W : -0.04*W);
+          ty = p.by*0.6 + b.y*0.4;
+          spd = 0.04;
+        }
+
+      } else {
+        // Đội có bóng — di chuyển hỗ trợ
+        if (p.role === 'fwd') {
+          const goalX = isHome ? W*0.78 : W*0.22;
+          tx = goalX + (Math.random()-0.5)*30;
+          ty = p.by*0.4 + H/2*0.3 + b.y*0.3;
+          spd = 0.055;
+        } else if (p.role === 'mid') {
+          const push = isHome ? (b.x/W-0.5)*0.1*W : -(b.x/W-0.5)*0.1*W;
+          tx = p.bx + push;
+          ty = p.by*0.5 + b.y*0.5;
+          spd = 0.04;
+        } else {
+          tx = p.bx; ty = p.by*0.7 + b.y*0.3;
+          spd = 0.03;
+        }
+      }
+
+      tx = Math.max(10, Math.min(W-10, tx));
+      ty = Math.max(10, Math.min(H-10, ty));
+      p.x += (tx - p.x) * spd;
+      p.y += (ty - p.y) * spd;
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // GOAL
+  // ═══════════════════════════════════════════
+  function handleGoal(scoringTeam, inLeftGoal, inRightGoal) {
+    if (S.nextGoal && !S.nextGoal.scored) {
+      S.nextGoal.scored = true;
+      if (scoringTeam === 'home') S.score[0]++;
+      else                        S.score[1]++;
+      document.getElementById('fb-score-h').textContent = S.score[0];
+      document.getElementById('fb-score-a').textContent = S.score[1];
+      addEvent(scoringTeam, S.elapsed);
+      S.goalAnim = 35;
+      S.holder = -1; S.receiver = -1;
+      setTimeout(() => {
+        if (S.phase !== 'playing') return;
+        S.ball.x = W/2; S.ball.y = H/2 + (Math.random()-0.5)*10;
+        S.ball.vx = 0; S.ball.vy = 0;
+        // Đội concede kick off
+        const kickTeam = scoringTeam === 'home' ? 'away' : 'home';
+        const ko = S.players.find(p => p.team === kickTeam && p.role === 'mid');
+        if (ko) {
+          ko.x = W/2 + (kickTeam==='home'?5:-5); ko.y = H/2;
+          pickupBall(ko.id);
+        }
+      }, 2000);
+    } else {
+      // Thủ môn cản — bật ra
+      S.ball.vx = inLeftGoal ?  Math.abs(S.ball.vx)*1.2 : -Math.abs(S.ball.vx)*1.2;
+      S.ball.vy += (Math.random()-0.5)*0.8;
+      S.ball.x   = inLeftGoal ? 22 : W-22;
+      S.holder = -1; S.receiver = -1;
+      pickupNearby(inLeftGoal ? 'home' : 'away');
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // DRAW
+  // ═══════════════════════════════════════════
+  function drawPitch() {
+    if (!ctx) return;
+    ctx.fillStyle = '#1d5c1d';
+    ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = i%2===0 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.05)';
+      ctx.fillRect(i*(W/8), 0, W/8, H);
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(5, 5, W-10, H-10);
+    ctx.beginPath(); ctx.moveTo(W/2,5); ctx.lineTo(W/2,H-5); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W/2, H/2, 22, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath(); ctx.arc(W/2, H/2, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeRect(5, H/2-26, 28, 52);
+    ctx.strokeRect(5, H/2-13, 12, 26);
+    ctx.strokeRect(W-33, H/2-26, 28, 52);
+    ctx.strokeRect(W-17, H/2-13, 12, 26);
+  }
+
+  function drawPlayers() {
+    if (!ctx) return;
+    S.players.forEach((p, i) => {
+      const hasBall = S.holder === i;
+      const isRecv  = S.receiver === i;
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y+PR, PR*0.7, PR*0.22, 0, 0, Math.PI*2); ctx.fill();
+      // Body
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, PR, 0, Math.PI*2); ctx.fill();
+      // Border
+      ctx.strokeStyle = hasBall ? '#fff' : isRecv ? '#ffff00' : 'rgba(0,0,0,0.5)';
+      ctx.lineWidth   = hasBall ? 2.5 : isRecv ? 1.8 : 1;
+      ctx.stroke();
+      // Role label
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.font = 'bold 5px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const lbl = p.role==='gk'?'G':p.role==='def'?'D':p.role==='mid'?'M':'F';
+      ctx.fillText(lbl, p.x, p.y);
+    });
+  }
+
+  function drawBall() {
+    if (!ctx) return;
+    const b = S.ball;
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath(); ctx.ellipse(b.x, b.y+5, 4, 1.5, 0, 0, Math.PI*2); ctx.fill();
+    // Ball
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(b.x, b.y, BR, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.8; ctx.stroke();
+    // Đường bay khi bóng đang bay
+    if (S.holder < 0 && (Math.abs(S.ball.vx) > 0.5 || Math.abs(S.ball.vy) > 0.5)) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y);
+      ctx.lineTo(b.x - b.vx*4, b.y - b.vy*4);
+      ctx.stroke();
+    }
+  }
+
+  function drawGoalFlash() {
+    if (S.goalAnim <= 0) return;
+    const a = (S.goalAnim / 35) * 0.45;
+    ctx.fillStyle = `rgba(255,220,0,${a})`;
+    ctx.fillRect(0, 0, W, H);
+    if (S.goalAnim > 20) {
+      ctx.fillStyle = `rgba(255,255,255,${a*2})`;
+      ctx.font = 'bold 28px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('GOAL!', W/2, H/2);
+    }
+  }
+
+  function drawFrame() {
+    drawPitch(); drawPlayers(); drawBall(); drawGoalFlash();
+  }
+
+  // ═══════════════════════════════════════════
+  // RENDER HTML & EVENTS (giữ nguyên từ cũ)
   // ═══════════════════════════════════════════
   function renderHTML() {
     generateMatches();
@@ -223,9 +735,17 @@ const CasinoFootball = (() => {
       </div>`;
   }
 
-  // ═══════════════════════════════════════════
-  // BIND EVENTS
-  // ═══════════════════════════════════════════
+  function addEvent(team, minute) {
+    const m = S.matches[S.selected];
+    const name  = team === 'home' ? m.home : m.away;
+    const color = team === 'home' ? m.hColor : m.aColor;
+    const el = document.getElementById('fb-events');
+    if (el) {
+      el.innerHTML += `<div class="sport-event" style="color:${color}">⚽ ${minute}' — ${name.toUpperCase()}</div>`;
+      el.scrollTop = el.scrollHeight;
+    }
+  }
+
   function bindEvents() {
     document.querySelectorAll('.fb-match-row').forEach(row => {
       row.addEventListener('click', () => {
@@ -252,19 +772,18 @@ const CasinoFootball = (() => {
     const m = S.matches[idx];
     document.getElementById('fb-pitch-wrap').style.display = '';
     document.getElementById('fb-odds').style.display = '';
-    document.getElementById('fb-pitch-home').textContent = m.home;
-    document.getElementById('fb-pitch-home').style.color = m.hColor;
-    document.getElementById('fb-pitch-hform').textContent = m.hForm;
-    document.getElementById('fb-pitch-hform').style.color = m.hColor;
-    document.getElementById('fb-pitch-away').textContent = m.away;
-    document.getElementById('fb-pitch-away').style.color = m.aColor;
-    document.getElementById('fb-pitch-aform').textContent = m.aForm;
-    document.getElementById('fb-pitch-aform').style.color = m.aColor;
-    document.getElementById('fb-label-home').textContent = m.home;
-    document.getElementById('fb-label-away').textContent = m.away;
-    document.getElementById('fb-odds-home').textContent = '×' + m.homeOdds;
+    ['home','away'].forEach(side => {
+      const team = side==='home' ? m.home : m.away;
+      const color= side==='home' ? m.hColor : m.aColor;
+      const form = side==='home' ? m.hForm : m.aForm;
+      document.getElementById(`fb-pitch-${side}`).textContent = team;
+      document.getElementById(`fb-pitch-${side}`).style.color = color;
+      document.getElementById(`fb-pitch-${side==='home'?'hform':'aform'}`).textContent = form;
+      document.getElementById(`fb-pitch-${side==='home'?'hform':'aform'}`).style.color = color;
+      document.getElementById(`fb-label-${side}`).textContent = team;
+      document.getElementById(`fb-odds-${side}`).textContent = '×' + (side==='home'?m.homeOdds:m.awayOdds);
+    });
     document.getElementById('fb-odds-draw').textContent = '×' + m.drawOdds;
-    document.getElementById('fb-odds-away').textContent = '×' + m.awayOdds;
     canvas = document.getElementById('fb-canvas');
     ctx = canvas?.getContext('2d');
     initPlayers(idx);
@@ -279,348 +798,6 @@ const CasinoFootball = (() => {
     if (btn) btn.disabled = !(S.selected !== null && S.betSide && S.phase === 'select');
   }
 
-  // ═══════════════════════════════════════════
-  // POSSESSION — chọn receiver tiếp theo
-  // Nguyên tắc: chọn cầu thủ GẦN BÓNG NHẤT trong đội đang có possession
-  // ═══════════════════════════════════════════
-  function scheduleNextPass() {
-    if (!S.matches[S.selected]) return;
-    if (S.receiver !== -1) return; // đã có receiver rồi, không override
-    const m = S.matches[S.selected];
-    const possTeam = S.possession;
-    const rating = possTeam === 'home' ? m.hRating : m.aRating;
-    const isHome = possTeam === 'home';
-    const b = S.ball;
-
-    // Lấy tất cả cầu thủ đội đang có bóng (trừ GK)
-    const candidates = S.players
-      .map((p, i) => ({ p, i, dist: Math.hypot(p.x - b.x, p.y - b.y) }))
-      .filter(({ p }) => p.team === possTeam && p.role !== 'gk');
-
-    if (!candidates.length) return;
-
-    // Sắp xếp theo khoảng cách bóng — gần nhất lên đầu
-    candidates.sort((a, b) => a.dist - b.dist);
-
-    // Chọn trong 3 người gần nhất (random nhẹ để không quá predict)
-    const topN = candidates.slice(0, Math.min(3, candidates.length));
-    // Weight: gần hơn = ưu tiên hơn, role fwd ưu tiên nếu đang gần khung thành đối
-    const goalX = isHome ? W : 0;
-    const weighted = topN.map(c => {
-      const distToGoal = Math.abs(c.p.x - goalX);
-      const roleBonus = c.p.role === 'fwd' ? 1.5 : c.p.role === 'mid' ? 1.1 : 0.9;
-      // Gần bóng = điểm cao, gần gôn = điểm cao nếu là fwd
-      return { ...c, w: (1 / (c.dist + 1)) * roleBonus + (c.p.role === 'fwd' ? 30 / (distToGoal + 1) : 0) };
-    });
-    weighted.sort((a, b) => b.w - a.w);
-    const chosen = weighted[0]; // Lấy người điểm cao nhất
-
-    S.receiver = chosen.i;
-    const p = chosen.p;
-
-    // Target sau khi nhận bóng
-    const shootGoalX = isHome ? W - 8 : 8; // vị trí TRONG gôn
-    const shootGoalY = H / 2 + (Math.random() - 0.5) * 28; // trong xà ngang
-
-    let nextTargetX, nextTargetY;
-    const distToGoal = isHome ? (W - p.x) : p.x;
-
-    if (p.role === 'fwd' && distToGoal < W * 0.35) {
-      // Fwd gần gôn → sút thẳng vào trong khung thành
-      nextTargetX = shootGoalX;
-      nextTargetY = shootGoalY;
-    } else if (p.role === 'fwd') {
-      // Fwd xa → tiến về phía gôn
-      nextTargetX = isHome ? Math.min(W-10, p.x + 50 + Math.random()*30) : Math.max(10, p.x - 50 - Math.random()*30);
-      nextTargetY = H/2 + (Math.random()-0.5)*40;
-    } else if (p.role === 'mid') {
-      // Mid → truyền về phía fwd hoặc tiến lên
-      const fwds = S.players.filter(fp => fp.team === possTeam && fp.role === 'fwd');
-      if (fwds.length && Math.random() < 0.6) {
-        const target = fwds[Math.floor(Math.random()*fwds.length)];
-        nextTargetX = target.x + (Math.random()-0.5)*20;
-        nextTargetY = target.y + (Math.random()-0.5)*15;
-      } else {
-        nextTargetX = isHome ? Math.min(W-10, p.x+35+Math.random()*30) : Math.max(10, p.x-35-Math.random()*30);
-        nextTargetY = p.y + (Math.random()-0.5)*50;
-      }
-    } else {
-      // Def → build up, truyền cho mid gần nhất
-      const mids = S.players
-        .filter(fp => fp.team === possTeam && fp.role === 'mid')
-        .sort((a,z) => Math.hypot(a.x-b.x,a.y-b.y) - Math.hypot(z.x-b.x,z.y-b.y));
-      if (mids.length) {
-        nextTargetX = mids[0].x + (Math.random()-0.5)*20;
-        nextTargetY = mids[0].y + (Math.random()-0.5)*15;
-      } else {
-        nextTargetX = isHome ? p.x+40 : p.x-40;
-        nextTargetY = p.y + (Math.random()-0.5)*30;
-      }
-    }
-
-    nextTargetX = Math.max(8, Math.min(W-8, nextTargetX));
-    nextTargetY = Math.max(8, Math.min(H-8, nextTargetY));
-    S.receiverTarget = { x: nextTargetX, y: nextTargetY };
-
-    // Thỉnh thoảng đội yếu mất bóng
-    const loseChance = 0.06 + (100 - rating) / 600;
-    if (Math.random() < loseChance) {
-      const delay = 600 + Math.random() * 1000;
-      setTimeout(() => {
-        if (S.phase !== 'playing') return;
-        S.possession = S.possession === 'home' ? 'away' : 'home';
-        S.receiver = -1;
-        scheduleNextPass();
-      }, delay);
-    }
-  }
-
-  // ═══════════════════════════════════════════
-  // SIMULATE — bóng + cầu thủ
-  // ═══════════════════════════════════════════
-  function simulate() {
-    const b = S.ball;
-
-    // ── Di chuyển bóng thẳng (KHÔNG bị chặn bởi cầu thủ) ──
-    b.x += b.vx;
-    b.y += b.vy;
-
-    // Ma sát rất nhẹ
-    b.vx *= 0.992;
-    b.vy *= 0.992;
-
-    // Bounce biên trên/dưới
-    if (b.y < 7)  { b.vy = Math.abs(b.vy);  b.y = 7; }
-    if (b.y > H-7){ b.vy = -Math.abs(b.vy); b.y = H-7; }
-
-    // Tốc độ tối thiểu — bóng luôn di chuyển
-    const speed = Math.hypot(b.vx, b.vy);
-    if (speed < 0.8) {
-      const angle = Math.atan2(b.vy, b.vx);
-      b.vx = Math.cos(angle) * 1.0;
-      b.vy = Math.sin(angle) * 1.0;
-    }
-
-    // ── Kiểm tra đến gần RECEIVER ──
-    if (S.receiver >= 0 && S.receiver < S.players.length) {
-      const recv = S.players[S.receiver];
-      const dist = Math.hypot(b.x - recv.x, b.y - recv.y);
-
-      if (dist < PR * 2.5) {
-        // Bóng đã đến tay receiver → bẻ lái về target tiếp theo
-        const tgt = S.receiverTarget || { x: W/2, y: H/2 };
-        const dx = tgt.x - b.x, dy = tgt.y - b.y;
-        const d = Math.hypot(dx, dy) || 1;
-        const spd = 2.0 + Math.random() * 1.5;
-        b.vx = (dx / d) * spd;
-        b.vy = (dy / d) * spd;
-        S.receiver = -1;
-
-        // Schedule pass tiếp theo sau delay ngắn
-        const m = S.matches[S.selected];
-        const rating = S.possession === 'home' ? m.hRating : m.aRating;
-        const delay = 400 + Math.random() * (800 - rating * 4); // team giỏi pass nhanh hơn
-        setTimeout(() => {
-          if (S.phase === 'playing') scheduleNextPass();
-        }, Math.max(200, delay));
-      }
-    } else if (S.receiver === -1) {
-      // Không có receiver → schedule lại
-      scheduleNextPass();
-    }
-
-    // ── GOAL ──
-    // Khung thành trái: x=5..33, y=H/2-26..H/2+26 (theo drawPitch)
-    // Khung thành phải: x=W-33..W-5
-    // Bóng vào gôn = vượt qua cột dọc ngoài cùng
-    const inLeftGoal  = b.x < 14 && b.y > H/2-22 && b.y < H/2+22;
-    const inRightGoal = b.x > W-14 && b.y > H/2-22 && b.y < H/2+22;
-
-    // Bóng chạm cột dọc (biên) nhưng không vào gôn → bounce
-    if (b.x < 8 && !inLeftGoal)  { b.vx =  Math.abs(b.vx) * 0.8; b.x = 9;   S.receiver = -1; S.possession = 'home'; scheduleNextPass(); }
-    if (b.x > W-8 && !inRightGoal){ b.vx = -Math.abs(b.vx) * 0.8; b.x = W-9; S.receiver = -1; S.possession = 'away'; scheduleNextPass(); }
-
-    if ((inLeftGoal || inRightGoal) && S.goalAnim === 0) {
-      if (S.nextGoal && !S.nextGoal.scored) {
-        // Pre-gen goal → ghi bàn
-        S.nextGoal.scored = true;
-        const team = inRightGoal ? 'home' : 'away';
-        if (team === 'home') S.score[0]++; else S.score[1]++;
-        document.getElementById('fb-score-h').textContent = S.score[0];
-        document.getElementById('fb-score-a').textContent = S.score[1];
-        addEvent(team, S.elapsed);
-        S.goalAnim = 30;
-        S.receiver = -1;
-
-        setTimeout(() => {
-          if (S.phase !== 'playing') return;
-          b.x = W/2; b.y = H/2 + (Math.random()-0.5)*10;
-          b.vx = (Math.random()-0.5)*2; b.vy = (Math.random()-0.5)*1.5;
-          S.possession = team === 'home' ? 'away' : 'home';
-          scheduleNextPass();
-        }, 1800);
-      } else {
-        // Chưa đến lúc ghi bàn → bóng bật ra khỏi gôn (thủ môn cản)
-        b.vx = inLeftGoal ? Math.abs(b.vx) * 1.1 : -Math.abs(b.vx) * 1.1;
-        b.vy += (Math.random()-0.5)*0.5;
-        b.x = inLeftGoal ? 20 : W-20;
-        S.receiver = -1;
-        // Possession về đội phòng thủ (thủ môn giữ bóng)
-        S.possession = inLeftGoal ? 'home' : 'away';
-        scheduleNextPass();
-      }
-    }
-
-    // ── Di chuyển cầu thủ theo vai trò ──
-    movePlayers();
-
-    if (S.goalAnim > 0) S.goalAnim--;
-  }
-
-  // ═══════════════════════════════════════════
-  // DI CHUYỂN CẦU THỦ
-  // ═══════════════════════════════════════════
-  function movePlayers() {
-    const b = S.ball;
-    S.players.forEach((p, i) => {
-      const isHome = p.team === 'home';
-      const hasPossession = S.possession === p.team;
-      const isReceiver = S.receiver === i;
-      let tx = p.bx, ty = p.by;
-
-      if (p.role === 'gk') {
-        // GK theo Y bóng khi bóng gần
-        tx = p.bx;
-        ty = p.by * 0.3 + b.y * 0.7;
-        ty = Math.max(H/2-24, Math.min(H/2+24, ty));
-
-      } else if (p.role === 'def') {
-        const ballInOwnHalf = isHome ? b.x < W/2 : b.x > W/2;
-        if (ballInOwnHalf) {
-          tx = p.bx; ty = p.by * 0.5 + b.y * 0.5;
-        } else {
-          tx = p.bx + (isHome ? 0.08*W : -0.08*W);
-          ty = p.by * 0.6 + b.y * 0.4;
-        }
-
-      } else if (p.role === 'mid') {
-        const push = isHome ? (b.x/W - 0.5)*0.12*W : -(b.x/W - 0.5)*0.12*W;
-        tx = p.bx + push;
-        ty = p.by * 0.5 + b.y * 0.5;
-
-      } else if (p.role === 'fwd') {
-        if (hasPossession) {
-          // Tiến lên khi đội đang có bóng
-          const fwdX = isHome ? Math.max(p.bx, b.x - 25) : Math.min(p.bx, b.x + 25);
-          tx = p.bx * 0.3 + fwdX * 0.7;
-          ty = p.by * 0.2 + b.y * 0.8;
-          tx = isHome ? Math.max(W*0.4, Math.min(W-10, tx)) : Math.max(10, Math.min(W*0.6, tx));
-        } else {
-          // Đội không có bóng → fwd ở giữa chờ cơ hội
-          tx = p.bx * 0.7 + W/2 * 0.3;
-          ty = p.by * 0.5 + b.y * 0.5;
-        }
-      }
-
-      // Receiver di chuyển về phía bóng chủ động
-      if (isReceiver) {
-        tx = b.x + (isHome ? -15 : 15);
-        ty = b.y;
-      }
-
-      tx = Math.max(10, Math.min(W-10, tx));
-      ty = Math.max(10, Math.min(H-10, ty));
-
-      const spd = isReceiver ? 0.15 : (p.role==='fwd' ? 0.05 : p.role==='mid' ? 0.035 : 0.025);
-      p.x += (tx - p.x) * spd;
-      p.y += (ty - p.y) * spd;
-    });
-  }
-
-  // ═══════════════════════════════════════════
-  // DRAW
-  // ═══════════════════════════════════════════
-  function drawPitch() {
-    if (!ctx) return;
-    ctx.fillStyle = '#1d5c1d';
-    ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < 8; i++) {
-      ctx.fillStyle = i%2===0 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.06)';
-      ctx.fillRect(i*(W/8), 0, W/8, H);
-    }
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 1.2;
-    ctx.strokeRect(5, 5, W-10, H-10);
-    ctx.beginPath(); ctx.moveTo(W/2, 5); ctx.lineTo(W/2, H-5); ctx.stroke();
-    ctx.beginPath(); ctx.arc(W/2, H/2, 22, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.beginPath(); ctx.arc(W/2, H/2, 2.5, 0, Math.PI*2); ctx.fill();
-    ctx.strokeRect(5, H/2-26, 28, 52);
-    ctx.strokeRect(5, H/2-13, 12, 26);
-    ctx.strokeRect(W-33, H/2-26, 28, 52);
-    ctx.strokeRect(W-17, H/2-13, 12, 26);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.beginPath(); ctx.arc(46, H/2, 2, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W-46, H/2, 2, 0, Math.PI*2); ctx.fill();
-  }
-
-  function drawPlayers() {
-    if (!ctx) return;
-    S.players.forEach((p, i) => {
-      const isReceiver = S.receiver === i;
-      ctx.fillStyle = 'rgba(0,0,0,0.2)';
-      ctx.beginPath(); ctx.ellipse(p.x, p.y+PR, PR*0.7, PR*0.25, 0, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, PR, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = isReceiver ? '#fff' : 'rgba(0,0,0,0.5)';
-      ctx.lineWidth = isReceiver ? 2 : 1.2;
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(0,0,0,0.65)';
-      ctx.font = 'bold 5px Arial';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(p.role==='gk'?'G':p.role==='def'?'D':p.role==='mid'?'M':'F', p.x, p.y);
-    });
-  }
-
-  function drawBall() {
-    if (!ctx) return;
-    const b = S.ball;
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.beginPath(); ctx.ellipse(b.x, b.y+5, 4, 1.5, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(b.x, b.y, 4.5, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#333'; ctx.lineWidth = 0.8; ctx.stroke();
-  }
-
-  function drawGoalFlash() {
-    if (S.goalAnim <= 0) return;
-    const a = S.goalAnim / 30 * 0.5;
-    ctx.fillStyle = `rgba(255,220,0,${a})`;
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = `rgba(255,255,255,${a * 1.8})`;
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('GOAL!', W/2, H/2);
-  }
-
-  function drawFrame() {
-    drawPitch(); drawPlayers(); drawBall(); drawGoalFlash();
-  }
-
-  function addEvent(team, minute) {
-    const m = S.matches[S.selected];
-    const name  = team === 'home' ? m.home : m.away;
-    const color = team === 'home' ? m.hColor : m.aColor;
-    const el = document.getElementById('fb-events');
-    if (el) {
-      el.innerHTML += `<div class="sport-event" style="color:${color}">⚽ ${minute}' — ${name.toUpperCase()}</div>`;
-      el.scrollTop = el.scrollHeight;
-    }
-  }
-
-  // ═══════════════════════════════════════════
-  // START
-  // ═══════════════════════════════════════════
   function startMatch() {
     if (S.phase !== 'select' || S.selected === null || !S.betSide) return;
     const bet = Casino.deductBet('fb');
@@ -628,7 +805,7 @@ const CasinoFootball = (() => {
     S.bet = bet; S.phase = 'playing';
     S.elapsed = 0; S.score = [0,0]; S.goalAnim = 0; S.nextGoal = null;
     const m = S.matches[S.selected];
-    S.pendingGoals = m.goals.map(g => ({ ...g, scored:false }));
+    S.pendingGoals = m.goals.map(g => ({...g, scored:false}));
     document.getElementById('fb-result').className = 'casino-result';
     document.getElementById('fb-events').innerHTML = '';
     document.getElementById('fb-score-h').textContent = '0';
@@ -643,7 +820,10 @@ const CasinoFootball = (() => {
     let lastSim = 0;
     function loop(ts) {
       if (S.phase !== 'playing') return;
-      if (ts - lastSim >= 50) { lastSim = ts; simulate(); }
+      if (ts - lastSim >= 40) { // 25fps sim
+        lastSim = ts;
+        simulate();
+      }
       drawFrame();
       animFrame = requestAnimationFrame(loop);
     }
@@ -652,7 +832,7 @@ const CasinoFootball = (() => {
     S.interval = setInterval(() => {
       S.elapsed++;
       const bar = document.getElementById('fb-bar');
-      if (bar) bar.style.width = (S.elapsed / 90 * 100) + '%';
+      if (bar) bar.style.width = (S.elapsed/90*100) + '%';
       const tl = document.getElementById('fb-time');
       if (tl) tl.textContent = S.elapsed + "'";
       const due = S.pendingGoals.find(g => g.minute === S.elapsed && !g.scored);
@@ -660,39 +840,33 @@ const CasinoFootball = (() => {
       if (S.elapsed >= 90) {
         clearInterval(S.interval);
         cancelAnimationFrame(animFrame);
-        setTimeout(() => { drawFrame(); finish(); }, 200);
+        setTimeout(() => { drawFrame(); finish(); }, 300);
       }
     }, 1000);
   }
 
-  // ═══════════════════════════════════════════
-  // FINISH
-  // ═══════════════════════════════════════════
   function finish() {
     S.phase = 'done';
     const m = S.matches[S.selected];
     const [h, a] = S.score;
-    const winner = h > a ? 'home' : a > h ? 'away' : 'draw';
-    const won = winner === S.betSide;
-    const odds = S.betSide==='home' ? m.homeOdds : S.betSide==='away' ? m.awayOdds : m.drawOdds;
+    const winner = h>a?'home':a>h?'away':'draw';
+    const won    = winner === S.betSide;
+    const odds   = S.betSide==='home'?m.homeOdds:S.betSide==='away'?m.awayOdds:m.drawOdds;
     if (won) {
       const pay = Math.floor(S.bet * odds);
       Casino.addWin(pay);
-      Casino.showResult('fb-result', 'win', `THẮNG! +${Format.money(pay-S.bet)} (×${odds}) | ${h}–${a}`);
+      Casino.showResult('fb-result','win',`THẮNG! +${Format.money(pay-S.bet)} (×${odds}) | ${h}–${a}`);
     } else {
-      Casino.showResult('fb-result', 'lose', `THUA! −${Format.money(S.bet)} | KQ: ${h}–${a}`);
+      Casino.showResult('fb-result','lose',`THUA! −${Format.money(S.bet)} | KQ: ${h}–${a}`);
     }
     const sb = document.getElementById('btn-fb-start');
     if (sb) { sb.disabled = false; sb.textContent = '⚽ CHƠI LẠI'; }
     setTimeout(() => {
       S.phase = 'select'; S.selected = null; S.betSide = null;
       generateMatches();
-      document.getElementById('fb-match-list').style.display = '';
-      document.getElementById('fb-pitch-wrap').style.display = 'none';
-      document.getElementById('fb-odds').style.display = 'none';
-      document.getElementById('fb-result').className = 'casino-result';
       const list = document.getElementById('fb-match-list');
       if (list) {
+        list.style.display = '';
         list.innerHTML = `<div class="fb-list-title">⚽ CHỌN TRẬN ĐẤU</div>` +
           S.matches.map((m,i) => `
             <div class="fb-match-row" data-idx="${i}">
@@ -717,9 +891,11 @@ const CasinoFootball = (() => {
           });
         });
       }
+      document.getElementById('fb-pitch-wrap').style.display = 'none';
+      document.getElementById('fb-odds').style.display = 'none';
       document.querySelectorAll('.sport-odds-btn[data-side]').forEach(b => b.disabled = false);
       updateStartBtn();
-    }, 3000);
+    }, 3500);
     Casino.updateAllBalances();
   }
 

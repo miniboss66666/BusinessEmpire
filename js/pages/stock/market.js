@@ -256,5 +256,6 @@ const StockMarket = (() => {
     return `<div id="stock-market-section">${renderHTML()}</div>`;
   }
 
-  return { renderHTML: renderHTML_wrap, bindEvents };
+  function init() { /* data load khi bindEvents được gọi */ }
+  return { init, renderHTML: renderHTML_wrap, bindEvents };
 })();
