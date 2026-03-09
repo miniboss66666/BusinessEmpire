@@ -1,7 +1,7 @@
 // @ts-nocheck
-const BRANCH_META_KNOWLEDGE = {
+KnowledgeTree.registerBranch({
   id:    'knowledge',
   label: '📚 Knowledge',
   color: '#aa44ff',
-};
-KnowledgeTree.registerBranch(BRANCH_META_KNOWLEDGE);
+  nodes: [], // chưa có node
+});

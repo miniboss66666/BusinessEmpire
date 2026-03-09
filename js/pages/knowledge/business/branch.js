@@ -1,7 +1,7 @@
 // @ts-nocheck
-const BRANCH_META_BUSINESS = {
+KnowledgeTree.registerBranch({
   id:    'business',
   label: '💼 Business',
   color: '#ffaa00',
-};
-KnowledgeTree.registerBranch(BRANCH_META_BUSINESS);
+  nodes: [],
+});

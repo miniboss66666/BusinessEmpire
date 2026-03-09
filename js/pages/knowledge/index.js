@@ -7,19 +7,46 @@
 // ── Registry (các node file tự register vào đây) ──
 const KnowledgeTree = (() => {
   const _branches = {};  // id → meta
-  const _nodes = [];     // flat array, thứ tự load = thứ tự trong branch
+  const _nodes = [];     // flat array
 
   function registerBranch(meta) {
-    _branches[meta.id] = meta;
+    _branches[meta.id] = { ...meta, nodes: meta.nodes || [] };
   }
   function registerNode(node) {
-    _nodes.push(node);
+    if (!_nodes.find(n => n.id === node.id)) _nodes.push(node);
   }
   function getBranches() { return Object.values(_branches); }
   function getNodes()    { return _nodes; }
   function getNode(id)   { return _nodes.find(n => n.id === id); }
 
-  return { registerBranch, registerNode, getBranches, getNodes, getNode };
+  // Tự động load node files dựa theo nodes[] trong mỗi branch
+  // Gọi 1 lần sau khi tất cả _branch.js đã load
+  // Dùng dynamic import — không cần thêm <script> tag thủ công nữa
+  async function autoLoadNodes() {
+    const base = 'js/pages/knowledge/';
+    const promises = [];
+    for (const branch of Object.values(_branches)) {
+      for (const nodeId of (branch.nodes || [])) {
+        const src = base + branch.id + '/' + nodeId + '.js';
+        promises.push(
+          import(window.location.origin + '/' + src).catch(() =>
+            // fallback: inject script tag nếu import không work (GitHub Pages quirk)
+            new Promise((res) => {
+              if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+              const s = document.createElement('script');
+              s.src = src;
+              s.onload = res;
+              s.onerror = res; // bỏ qua lỗi, node chưa tồn tại
+              document.head.appendChild(s);
+            })
+          )
+        );
+      }
+    }
+    await Promise.all(promises);
+  }
+
+  return { registerBranch, registerNode, getBranches, getNodes, getNode, autoLoadNodes };
 })();
 
 // ── Root node (hardcoded, không phải branch) ──
@@ -411,7 +438,11 @@ const KnowledgePage = (() => {
     bindEvents();
   }
 
-  function init() { _s(); _rerender(); }
+  async function init() {
+    _s();
+    await KnowledgeTree.autoLoadNodes();
+    _rerender();
+  }
   function tick() { /* passive handled by timer */ }
 
   // Buff getters

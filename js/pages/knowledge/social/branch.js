@@ -1,7 +1,7 @@
 // @ts-nocheck
-/* Branch meta — 🌐 Internet & Social */
-const BRANCH_META_SOCIAL = {
+KnowledgeTree.registerBranch({
   id:    'social',
   label: '🌐 Internet & Social',
-  color: '#0088ff'
-};
+  color: '#0088ff',
+  nodes: ['IS1'], // thêm node mới vào đây, không cần sửa index.html
+});
