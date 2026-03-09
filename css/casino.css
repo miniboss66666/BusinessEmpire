@@ -685,7 +685,7 @@
 
 .horse-finish-line {
   position: absolute;
-  right: 44px; top: 0; bottom: 0;
+  right: 10%; top: 0; bottom: 0;
   width: 14px;
   /* Kẻ ô so le đen trắng như cờ đua */
   background-image:

@@ -14,7 +14,7 @@ const CasinoHorse = (() => {
     {name:'👑 King',    color:'#ffd700'},
   ];
 
-  const FINISH = 78; // % track
+  const FINISH = 90; // % track
 
   let state={
     phase:'idle', betHorse:null, bet:0, interval:null,
