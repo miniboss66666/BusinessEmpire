@@ -1,1 +1,106 @@
-/* placeholder */
+/* ════════════════════════════════════════════
+   KNOWLEDGE.CSS
+   ════════════════════════════════════════════ */
+.kn-wrap { display:flex; flex-direction:column; height:100%; }
+
+.kn-topbar {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 14px; border-bottom:1px solid var(--border);
+  background:var(--bg2); flex-shrink:0;
+}
+.kn-title {
+  font-family:'Orbitron',monospace; font-size:0.78rem;
+  font-weight:700; color:var(--text-bright); letter-spacing:1px;
+}
+.kn-progress {
+  font-size:0.65rem; color:var(--text-dim);
+  background:var(--bg3); padding:3px 9px; border-radius:12px;
+}
+.kn-active-research {
+  font-size:0.65rem; color:#ffaa00; margin-left:auto;
+  background:rgba(255,170,0,0.1); border:1px solid rgba(255,170,0,0.3);
+  padding:3px 10px; border-radius:12px;
+}
+
+.kn-main {
+  flex:1; display:flex; overflow:hidden;
+}
+
+/* Map */
+.kn-map-wrap {
+  flex:1; overflow:hidden; position:relative;
+  background:radial-gradient(ellipse at center, #0d0d1a 0%, #060608 100%);
+  cursor:grab;
+}
+.kn-map-wrap:active { cursor:grabbing; }
+
+/* Detail panel */
+.kn-panel {
+  width:220px; flex-shrink:0;
+  border-left:1px solid var(--border);
+  background:var(--bg2); overflow-y:auto;
+}
+.kn-detail-empty {
+  height:100%; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:8px; font-size:0.68rem; color:var(--text-dim);
+}
+.kn-detail-empty div:first-child { font-size:2rem; }
+
+.kn-detail { padding:14px 12px; display:flex; flex-direction:column; gap:10px; }
+.kn-detail-header { display:flex; align-items:flex-start; gap:9px; }
+.kn-detail-emoji { font-size:1.6rem; flex-shrink:0; }
+.kn-detail-name { font-size:0.75rem; font-weight:700; color:var(--text-bright); }
+.kn-detail-desc { font-size:0.62rem; color:var(--gold); margin-top:3px; }
+
+.kn-status {
+  font-size:0.7rem; font-weight:700; padding:8px 10px;
+  border-radius:9px; text-align:center;
+}
+.kn-status.unlocked { background:rgba(0,200,83,0.1); color:var(--green); border:1px solid rgba(0,200,83,0.3); }
+.kn-status.researching { background:rgba(255,170,0,0.1); color:#ffaa00; border:1px solid rgba(255,170,0,0.3); }
+.kn-status.queued { background:rgba(100,100,255,0.1); color:#8888ff; border:1px solid rgba(100,100,255,0.3); }
+.kn-status.locked { background:var(--bg3); color:var(--text-dim); border:1px solid var(--border2); }
+
+.kn-countdown {
+  display:block; font-family:'Orbitron',monospace;
+  font-size:0.85rem; margin-top:4px; color:#ffaa00;
+}
+
+.kn-cost-row {
+  display:flex; justify-content:space-between;
+  background:var(--bg3); border-radius:8px; padding:8px 10px;
+  font-size:0.68rem; color:var(--text-dim);
+}
+.kn-action-row { display:flex; flex-direction:column; gap:6px; }
+.kn-btn-research {
+  width:100%; padding:10px; background:rgba(0,200,83,0.1);
+  border:1px solid var(--green); border-radius:9px;
+  color:var(--green); font-size:0.7rem; font-weight:700;
+  cursor:pointer; transition:all 0.2s;
+}
+.kn-btn-research:hover:not(:disabled) { background:var(--green); color:#000; }
+.kn-btn-research:disabled { opacity:0.35; cursor:not-allowed; }
+.kn-btn-queue {
+  width:100%; padding:8px; background:rgba(100,100,255,0.08);
+  border:1px solid #6666ff; border-radius:9px;
+  color:#8888ff; font-size:0.65rem; font-weight:700;
+  cursor:pointer; transition:all 0.2s;
+}
+.kn-btn-queue:hover:not(:disabled) { background:#6666ff; color:#fff; }
+.kn-btn-queue:disabled { opacity:0.35; cursor:not-allowed; }
+.kn-btn-cancel {
+  width:100%; padding:7px; background:rgba(255,68,85,0.08);
+  border:1px solid var(--red); border-radius:8px;
+  color:var(--red); font-size:0.65rem; font-weight:700;
+  cursor:pointer; transition:all 0.15s;
+}
+.kn-btn-cancel:hover { background:var(--red); color:#fff; }
+.kn-warn { font-size:0.62rem; color:var(--red); text-align:center; }
+
+.kn-queue-info {
+  background:var(--bg3); border-radius:8px; padding:9px 10px;
+  border:1px solid var(--border2);
+}
+.kn-queue-title { font-size:0.65rem; font-weight:700; color:var(--text-dim); margin-bottom:6px; }
+.kn-queue-item { font-size:0.63rem; color:var(--text-dim); padding:3px 0; }
