@@ -2,10 +2,32 @@
 /* ============================================
    STOCK/INDEX.JS — Dashboard 3 tab
    ============================================ */
-
 const StockPage = (() => {
-
   let currentTab = 'market'; // 'market' | 'crypto' | 'miner'
+
+  function _getStockPortfolioValue() {
+    let total = 0;
+    const portfolio = STATE.stock?.portfolio || {};
+    const market = STATE.stock?.market || {};
+    for (const sym in portfolio) {
+      const shares = portfolio[sym]?.shares || 0;
+      const price  = market[sym]?.price || 0;
+      total += shares * price;
+    }
+    return total;
+  }
+
+  function _getCryptoPortfolioValue() {
+    let total = 0;
+    const cp = STATE.stock?.cryptoPortfolio || {};
+    const prices = STATE.stock?.cryptoPrices || {};
+    for (const coinId in cp) {
+      const amount = cp[coinId]?.amount || 0;
+      const price  = prices[coinId] || 0;
+      total += amount * price;
+    }
+    return total;
+  }
 
   function init() {
     StockMarket.init();
@@ -22,11 +44,10 @@ const StockPage = (() => {
   }
 
   function renderHTML() {
-    const marketVal = StockMarket.getPortfolioValue();
-    const cryptoVal = StockCrypto.getPortfolioValue();
+    const marketVal = _getStockPortfolioValue();
+    const cryptoVal = _getCryptoPortfolioValue();
     const miningInc = StockMiner.getMiningIncome();
-    const totalVal = marketVal + cryptoVal;
-
+    const totalVal  = marketVal + cryptoVal;
     return `
       <div class="stock-wrap">
         <!-- Header -->
@@ -37,7 +58,6 @@ const StockPage = (() => {
             ${miningInc > 0 ? `<span class="stock-mining-val">⛏️ ${Format.money(miningInc)}/ph</span>` : ''}
           </div>
         </div>
-
         <!-- Tabs -->
         <div class="stock-tabs">
           <button class="stock-tab ${currentTab==='market'?'active':''}" data-tab="market">
@@ -50,7 +70,6 @@ const StockPage = (() => {
             ⛏️ Miner
           </button>
         </div>
-
         <!-- Content -->
         <div class="stock-content" id="stock-content">
           ${renderTabContent()}
@@ -59,12 +78,8 @@ const StockPage = (() => {
   }
 
   function renderTabContent() {
-    if (currentTab === 'market') {
-      return `<div id="stk-market-content">${StockMarket.renderHTML()}</div>`;
-    }
-    if (currentTab === 'crypto') {
-      return `<div id="stk-crypto-content">${StockCrypto.renderHTML()}</div>`;
-    }
+    if (currentTab === 'market') return `<div id="stk-market-content">${StockMarket.renderHTML()}</div>`;
+    if (currentTab === 'crypto') return `<div id="stk-crypto-content">${StockCrypto.renderHTML()}</div>`;
     return `<div id="stk-miner-content">${StockMiner.renderHTML()}</div>`;
   }
 
@@ -82,14 +97,13 @@ const StockPage = (() => {
   }
 
   function bindTabContent() {
-    if (currentTab === 'market') StockMarket.bindEvents();
+    if (currentTab === 'market')      StockMarket.bindEvents();
     else if (currentTab === 'crypto') StockCrypto.bindEvents();
-    else StockMiner.bindEvents();
+    else                              StockMiner.bindEvents();
   }
 
   function tick() {
-    // Update header stats
-    const totalVal = StockMarket.getPortfolioValue() + StockCrypto.getPortfolioValue();
+    const totalVal = _getStockPortfolioValue() + _getCryptoPortfolioValue();
     const miningInc = StockMiner.getMiningIncome();
     const valEl = document.querySelector('.stock-total-val');
     const minEl = document.querySelector('.stock-mining-val');
