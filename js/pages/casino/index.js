@@ -4,12 +4,11 @@
 
 const CasinoPage = (() => {
 
-  let initialized = false;
-
   // ============================================
   // SHARED BET CONTROLS
   // ============================================
   function renderBetControls(prefix) {
+    const dirty = STATE.underground?.dirtyMoney || STATE.dirtyMoney || 0;
     return `
       <div class="bet-controls" data-prefix="${prefix}">
         <div class="bet-money-toggle">
@@ -19,7 +18,7 @@ const CasinoPage = (() => {
           </button>
           <button class="bet-money-btn" data-type="dirty" data-for="${prefix}">
             🩸 Bẩn
-            <span class="bet-money-bal" id="bet-bal-dirty-${prefix}">${Format.money(STATE.dirtyMoney || 0)}</span>
+            <span class="bet-money-bal" id="bet-bal-dirty-${prefix}">${Format.money(dirty)}</span>
           </button>
         </div>
         <div class="bet-row">
@@ -45,6 +44,7 @@ const CasinoPage = (() => {
         btn.classList.add('active');
         document.getElementById('bet-type-' + prefix).value = btn.dataset.type;
         document.getElementById('bet-input-' + prefix).value = '';
+        updateAllBalances();
       });
     });
 
@@ -54,9 +54,8 @@ const CasinoPage = (() => {
         const input  = document.getElementById('bet-input-' + prefix);
         const typeEl = document.getElementById('bet-type-' + prefix);
         if (!input || !typeEl) return;
-        const bal = Math.floor(
-          typeEl.value === 'dirty' ? (STATE.dirtyMoney || 0) : STATE.balance
-        );
+        const dirty = STATE.underground?.dirtyMoney || STATE.dirtyMoney || 0;
+        const bal = Math.floor(typeEl.value === 'dirty' ? dirty : STATE.balance);
         const pct = parseInt(btn.dataset.preset);
         input.value = Math.max(1, Math.floor(bal * pct / 100));
       });
@@ -75,13 +74,18 @@ const CasinoPage = (() => {
     return document.getElementById('bet-type-' + prefix)?.value || 'clean';
   }
 
-  // Trừ tiền, trả về số tiền cược hoặc false nếu không đủ
   function deductBet(prefix) {
     const bet  = getBet(prefix);
     const type = getBetType(prefix);
     if (type === 'dirty') {
-      if ((STATE.dirtyMoney || 0) < bet) { UI.toast('Không đủ tiền bẩn!', 'error'); return false; }
-      STATE.dirtyMoney -= bet;
+      // Lấy dirtyMoney từ đúng chỗ
+      const dirty = STATE.underground?.dirtyMoney ?? STATE.dirtyMoney ?? 0;
+      if (dirty < bet) { UI.toast('Không đủ tiền bẩn!', 'error'); return false; }
+      if (STATE.underground?.dirtyMoney !== undefined) {
+        STATE.underground.dirtyMoney -= bet;
+      } else {
+        STATE.dirtyMoney = (STATE.dirtyMoney || 0) - bet;
+      }
     } else {
       if (STATE.balance < bet) { UI.toast('Không đủ tiền!', 'error'); return false; }
       STATE.balance -= bet;
@@ -89,7 +93,6 @@ const CasinoPage = (() => {
     return bet;
   }
 
-  // Tiền thắng luôn ra tiền sạch (casino = rửa tiền hợp pháp)
   function addWin(amount) {
     STATE.balance += amount;
   }
@@ -102,11 +105,12 @@ const CasinoPage = (() => {
   }
 
   function updateAllBalances() {
-    document.querySelectorAll('.bet-money-bal[id^="bet-bal-clean-"]').forEach(el => {
+    const dirty = STATE.underground?.dirtyMoney ?? STATE.dirtyMoney ?? 0;
+    document.querySelectorAll('[id^="bet-bal-clean-"]').forEach(el => {
       el.textContent = Format.money(STATE.balance);
     });
-    document.querySelectorAll('.bet-money-bal[id^="bet-bal-dirty-"]').forEach(el => {
-      el.textContent = Format.money(STATE.dirtyMoney || 0);
+    document.querySelectorAll('[id^="bet-bal-dirty-"]').forEach(el => {
+      el.textContent = Format.money(dirty);
     });
     const hdr = document.getElementById('casino-bal');
     if (hdr) hdr.textContent = Format.money(STATE.balance);
@@ -177,11 +181,9 @@ const CasinoPage = (() => {
     area.innerHTML = mod.renderHTML();
     bindBetControls();
     mod.bindEvents();
+    updateAllBalances();
   }
 
-  // ============================================
-  // PUBLIC API (shared với sub-modules)
-  // ============================================
   const API = {
     renderBetControls,
     getBet,
@@ -195,5 +197,4 @@ const CasinoPage = (() => {
   return { render, ...API };
 })();
 
-// Alias ngắn cho sub-modules dùng
 const Casino = CasinoPage;
