@@ -1,0 +1,141 @@
+/* ══════════════════════════════════════════
+   HACK MINIGAME CSS
+   ══════════════════════════════════════════ */
+
+.hack-start-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px 0 8px;
+}
+
+.hack-game {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 10px 0;
+}
+
+/* Từ mục tiêu */
+.hack-word-target {
+  display: flex; gap: 6px; margin-bottom: 4px;
+}
+.hack-target-char {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Courier New', monospace; font-size: 1rem; font-weight: 700;
+  color: #ff4444;
+  background: rgba(80,0,0,0.4); border: 1px solid #661111;
+  border-radius: 5px;
+  transition: all 0.2s;
+}
+.hack-target-char.correct {
+  color: #00ff88; border-color: #00cc66;
+  background: rgba(0,100,50,0.3);
+  box-shadow: 0 0 8px rgba(0,255,100,0.4);
+}
+.hack-target-char.wrong {
+  color: #ff2222; border-color: #aa0000;
+  background: rgba(100,0,0,0.4);
+  box-shadow: 0 0 8px rgba(255,0,0,0.4);
+}
+
+/* Cột chữ rơi */
+.hack-cols-wrap {
+  display: flex; gap: 8px;
+}
+
+.hack-col-container {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+
+.hack-col {
+  width: 36px;
+  height: calc(36px * 7);
+  overflow: hidden;
+  position: relative;
+  background: rgba(20,0,0,0.6);
+  border: 1px solid rgba(120,20,20,0.5);
+  border-radius: 6px;
+}
+
+.hack-char {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Courier New', monospace; font-size: 0.9rem; font-weight: 700;
+  color: #554444;
+  position: relative;
+  transition: color 0.1s;
+  user-select: none;
+}
+
+.hack-char.center {
+  color: #cc6666;
+  background: rgba(80,10,10,0.5);
+}
+
+/* Overlay highlight cho hàng giữa */
+.hack-col::after {
+  content: '';
+  position: absolute;
+  top: calc(36px * 3);
+  left: 0; right: 0;
+  height: 36px;
+  background: rgba(255,50,50,0.08);
+  border-top: 1px solid rgba(200,40,40,0.4);
+  border-bottom: 1px solid rgba(200,40,40,0.4);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hack-char.target {
+  color: #ff9900;
+  text-shadow: 0 0 8px rgba(255,150,0,0.6);
+}
+
+.hack-char.locked {
+  color: #ffffff;
+  font-weight: 900;
+}
+
+/* Lock button */
+.hack-lock-btn {
+  padding: 5px 6px; width: 36px;
+  background: rgba(100,10,10,0.4); border: 1px solid #881111;
+  border-radius: 5px; color: #ff4444;
+  font-size: 0.55rem; font-weight: 700; cursor: pointer;
+  transition: all 0.15s; text-align: center;
+}
+.hack-lock-btn:hover:not(:disabled) {
+  background: #881111; color: #fff;
+  box-shadow: 0 0 8px rgba(200,20,20,0.5);
+}
+.hack-lock-btn:disabled { opacity: 0.5; cursor: default; }
+.hack-lock-btn.ok  { background: rgba(0,100,50,0.3); border-color: #00cc66; color: #00ff88; }
+.hack-lock-btn.fail{ background: rgba(100,0,0,0.4);  border-color: #aa0000; color: #ff4444; }
+
+/* Hint */
+.hack-hint {
+  font-size: 0.6rem; color: #664444; text-align: center;
+}
+
+/* Result */
+.hack-result {
+  font-size: 0.75rem; font-weight: 700; text-align: center;
+  padding: 8px 12px; border-radius: 8px;
+}
+.hack-result.success {
+  color: #00ff88; background: rgba(0,100,50,0.2);
+  border: 1px solid rgba(0,200,100,0.3);
+}
+.hack-result.fail {
+  color: #ff4444; background: rgba(100,0,0,0.2);
+  border: 1px solid rgba(200,0,0,0.3);
+}
+
+.hack-retry-btn {
+  padding: 9px 20px;
+  background: rgba(150,20,20,0.15); border: 1px solid #881111;
+  border-radius: 8px; color: #ff4444; font-size: 0.7rem;
+  font-weight: 700; cursor: pointer; transition: all 0.15s;
+}
+.hack-retry-btn:hover {
+  background: #881111; color: #fff;
+  box-shadow: 0 0 10px rgba(180,20,20,0.4);
+}
