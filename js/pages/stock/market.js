@@ -46,18 +46,30 @@ const StockMarket = (() => {
 
   let selectedStock = null;
   let fetchInterval = null;
-  let selectedRange = 1440;
+  let selectedRange = 30;
 
   async function fetchLatest() {
-    const { data, error } = await DB
-      .from('stock_latest')
-      .select('symbol, price, recorded_at');
-    if (error) { console.error('stock fetch:', error.message); return; }
-    data.forEach(row => {
-      if (!STATE.stock.market[row.symbol]) STATE.stock.market[row.symbol] = {};
-      const prev = STATE.stock.market[row.symbol].price || Number(row.price);
+    const since15 = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const [latestRes, oldRes] = await Promise.all([
+      DB.from('stock_latest').select('symbol, price, recorded_at'),
+      DB.from('stock_history')
+        .select('symbol, price')
+        .gte('recorded_at', since15)
+        .order('recorded_at', { ascending: true }),
+    ]);
+    if (latestRes.error) { console.error('stock fetch:', latestRes.error.message); return; }
+    // Lấy giá cũ nhất trong 15 phút qua cho mỗi symbol
+    const oldMap = {};
+    (oldRes.data || []).forEach(row => {
+      if (!oldMap[row.symbol]) oldMap[row.symbol] = Number(row.price);
+    });
+    latestRes.data.forEach(row => {
+      const currentPrice = Number(row.price);
+      const prevPrice    = oldMap[row.symbol] ?? currentPrice;
       STATE.stock.market[row.symbol] = {
-        price: Number(row.price), prev, recorded_at: row.recorded_at,
+        price: currentPrice,
+        prev:  prevPrice,
+        recorded_at: row.recorded_at,
       };
     });
     _refreshTable();

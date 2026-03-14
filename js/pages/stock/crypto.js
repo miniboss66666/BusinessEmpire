@@ -45,27 +45,38 @@ const StockCrypto = (() => {
 
   let selectedCoin  = null;
   let fetchInterval = null;
-  let selectedRange = 1440;
+  let selectedRange = 30;
 
   async function fetchLatest() {
-    const { data, error } = await DB
-      .from('crypto_latest')
-      .select('coin_id, price_usd, recorded_at');
-    if (error) { console.error('crypto fetch:', error.message); return; }
+    const since15 = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const [latestRes, oldRes] = await Promise.all([
+      DB.from('crypto_latest').select('coin_id, price_usd, recorded_at'),
+      DB.from('crypto_history')
+        .select('coin_id, price_usd')
+        .gte('recorded_at', since15)
+        .order('recorded_at', { ascending: true }),
+    ]);
+    if (latestRes.error) { console.error('crypto fetch:', latestRes.error.message); return; }
 
-    const prices = {};
-    data.forEach(r => { prices[r.coin_id] = Number(r.price_usd); });
+    // Giá cũ nhất 15 phút qua
+    const oldMap = {};
+    (oldRes.data || []).forEach(row => {
+      if (!oldMap[row.coin_id]) oldMap[row.coin_id] = Number(row.price_usd);
+    });
 
     if (!STATE.stock.cryptoPrices)  STATE.stock.cryptoPrices  = {};
     if (!STATE.stock.cryptoHistory) STATE.stock.cryptoHistory = {};
+    if (!STATE.stock.cryptoPrev)    STATE.stock.cryptoPrev    = {};
 
-    COINS.forEach(c => {
-      if (prices[c.id] === undefined) return;
-      STATE.stock.cryptoPrices[c.id] = prices[c.id];
-      if (!STATE.stock.cryptoHistory[c.id]) STATE.stock.cryptoHistory[c.id] = [];
-      STATE.stock.cryptoHistory[c.id].push(prices[c.id]);
-      if (STATE.stock.cryptoHistory[c.id].length > 720)
-        STATE.stock.cryptoHistory[c.id].shift();
+    latestRes.data.forEach(r => {
+      const cur  = Number(r.price_usd);
+      const prev = oldMap[r.coin_id] ?? cur;
+      STATE.stock.cryptoPrices[r.coin_id] = cur;
+      STATE.stock.cryptoPrev[r.coin_id]   = prev;
+      if (!STATE.stock.cryptoHistory[r.coin_id]) STATE.stock.cryptoHistory[r.coin_id] = [];
+      STATE.stock.cryptoHistory[r.coin_id].push(cur);
+      if (STATE.stock.cryptoHistory[r.coin_id].length > 720)
+        STATE.stock.cryptoHistory[r.coin_id].shift();
     });
     _refreshTable();
   }
@@ -85,8 +96,7 @@ const StockCrypto = (() => {
   function renderHTML() {
     const rows = COINS.map(c => {
       const price = STATE.stock.cryptoPrices?.[c.id] || 0;
-      const hist  = STATE.stock.cryptoHistory?.[c.id] || [];
-      const prev  = hist.length > 1 ? hist[hist.length - 2] : price;
+      const prev  = STATE.stock.cryptoPrev?.[c.id] ?? price;
       const diff  = price - prev;
       const pct   = prev > 0 ? (diff / prev * 100) : 0;
       const pos   = STATE.stock.cryptoPortfolio?.[c.id];
