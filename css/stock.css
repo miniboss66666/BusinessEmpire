@@ -109,13 +109,13 @@
   background:var(--bg2); border-top:1px solid var(--border);
   border-bottom:1px solid var(--border);
 }
-.stock-chart-svg { width:100%; height:110px; display:block; }
+.stock-chart-svg { width:100%; height:180px; display:block; }
 .stock-chart-label {
   font-size:0.58rem; color:var(--text-dim);
   text-align:right; padding-top:4px;
 }
 .stock-chart-empty {
-  height:80px; display:flex; align-items:center; justify-content:center;
+  height:100px; display:flex; align-items:center; justify-content:center;
   font-size:0.68rem; color:var(--text-dim);
 }
 
@@ -290,3 +290,24 @@
   justify-content:center; gap:8px; padding:40px 20px;
   color:var(--text-dim); font-size:0.72rem; text-align:center;
 }
+
+/* ── TIME RANGE SELECTOR ── */
+.chart-range-bar {
+  display:flex; gap:4px; padding:8px 14px 4px;
+  border-bottom:1px solid var(--border);
+}
+.chart-range-btn {
+  flex:1; padding:5px 4px; background:var(--bg2);
+  border:1px solid var(--border2); border-radius:6px;
+  color:var(--text-dim); font-size:0.62rem; font-weight:700;
+  cursor:pointer; transition:all 0.15s;
+}
+.chart-range-btn:hover { border-color:var(--gold); color:var(--gold); }
+.chart-range-btn.active {
+  background:rgba(212,175,55,0.12);
+  border-color:var(--gold); color:var(--gold);
+}
+
+/* Override chart size - tự scale theo aspect ratio */
+.stock-chart-svg { width:100% !important; height:auto !important; aspect-ratio:2/1; }
+.stock-chart-empty { height:120px; }
