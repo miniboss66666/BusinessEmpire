@@ -6,8 +6,8 @@
 
 // ── Registry (các node file tự register vào đây) ──
 const KnowledgeTree = (() => {
-  const _branches = {};  // id → meta
-  const _nodes = [];     // flat array
+  const _branches = {};
+  const _nodes = [];
 
   function registerBranch(meta) {
     _branches[meta.id] = { ...meta, nodes: meta.nodes || [] };
@@ -19,28 +19,21 @@ const KnowledgeTree = (() => {
   function getNodes()    { return _nodes; }
   function getNode(id)   { return _nodes.find(n => n.id === id); }
 
-  // Tự động load node files dựa theo nodes[] trong mỗi branch
-  // Gọi 1 lần sau khi tất cả _branch.js đã load
-  // Dùng dynamic import — không cần thêm <script> tag thủ công nữa
+  // Inject script tags — không dùng dynamic import (bị CSP block)
   async function autoLoadNodes() {
     const base = 'js/pages/knowledge/';
     const promises = [];
     for (const branch of Object.values(_branches)) {
       for (const nodeId of (branch.nodes || [])) {
         const src = base + branch.id + '/' + nodeId + '.js';
-        promises.push(
-          import(window.location.origin + '/' + src).catch(() =>
-            // fallback: inject script tag nếu import không work (GitHub Pages quirk)
-            new Promise((res) => {
-              if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
-              const s = document.createElement('script');
-              s.src = src;
-              s.onload = res;
-              s.onerror = res; // bỏ qua lỗi, node chưa tồn tại
-              document.head.appendChild(s);
-            })
-          )
-        );
+        if (document.querySelector(`script[src="${src}"]`)) continue;
+        promises.push(new Promise((res) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.onload = res;
+          s.onerror = res; // bỏ qua nếu file chưa tồn tại
+          document.head.appendChild(s);
+        }));
       }
     }
     await Promise.all(promises);
@@ -68,7 +61,7 @@ const KnowledgePage = (() => {
   function _branchAngle(branch) {
     const branches = KnowledgeTree.getBranches();
     const idx = branches.findIndex(b => b.id === branch.id);
-    return (360 / branches.length) * idx - 90; // bắt đầu từ trên
+    return (360 / branches.length) * idx - 90;
   }
 
   let panX = 0, panY = 0;
@@ -76,7 +69,6 @@ const KnowledgePage = (() => {
   let selectedId = null;
   let researchTimer = null;
 
-  // ── State ──
   function _s() {
     if (!STATE.knowledge) STATE.knowledge = {
       unlocked: [], researching: null, queue: [],
@@ -84,9 +76,9 @@ const KnowledgePage = (() => {
     return STATE.knowledge;
   }
 
-  function isUnlocked(id) { return _s().unlocked.includes(id); }
+  function isUnlocked(id)    { return _s().unlocked.includes(id); }
   function isResearching(id) { return _s().researching?.id === id; }
-  function isQueued(id) { return _s().queue.includes(id); }
+  function isQueued(id)      { return _s().queue.includes(id); }
 
   function canResearch(node) {
     if (node.locked) return false;
@@ -110,7 +102,6 @@ const KnowledgePage = (() => {
   function effTime(node) { return node.id === 'root' ? 0 : Math.round(node.timeSec * getTimeMult()); }
   function effCost(node) { return node.id === 'root' ? node.cost : Math.round(node.cost * getCostMult()); }
 
-  // ── Layout ──
   function nodePos(node) {
     const branch = KnowledgeTree.getBranches().find(b => b.id === node.branch);
     if (!branch) return { x: CX, y: CY };
@@ -121,14 +112,12 @@ const KnowledgePage = (() => {
     return { x: CX + Math.cos(rad) * dist, y: CY + Math.sin(rad) * dist };
   }
 
-  // ── SVG ──
   function renderSVG() {
     const W = 800, H = 700;
     let lines = '', nodes = '';
     const branches = KnowledgeTree.getBranches();
     const allNodes = KnowledgeTree.getNodes();
 
-    // Root → branch lines
     branches.forEach(b => {
       if (!isUnlocked('root')) return;
       const rad = _branchAngle(b) * Math.PI / 180;
@@ -138,7 +127,6 @@ const KnowledgePage = (() => {
         stroke="${b.color}" stroke-width="2" stroke-opacity="0.35" stroke-dasharray="6,4"/>`;
     });
 
-    // Node → node lines
     allNodes.forEach(node => {
       const pos = nodePos(node);
       node.requires.forEach(reqId => {
@@ -155,8 +143,7 @@ const KnowledgePage = (() => {
       });
     });
 
-    // Root node
-    const ru = isUnlocked('root'), rr = isResearching('root');
+    const ru = isUnlocked('root');
     const rSel = selectedId === 'root';
     nodes += `
       <g class="kn-node" data-id="root" style="cursor:pointer">
@@ -170,21 +157,20 @@ const KnowledgePage = (() => {
         ${ru?`<text x="${CX}" y="${CY+23}" text-anchor="middle" font-size="8" fill="#00c853">✓</text>`:''}
       </g>`;
 
-    // Branch nodes
     allNodes.forEach(node => {
       const pos = nodePos(node);
       const b = branches.find(b => b.id === node.branch);
       const color = b?.color || '#555';
-      const unlocked = isUnlocked(node.id);
+      const unlocked    = isUnlocked(node.id);
       const researching = isResearching(node.id);
-      const queued = isQueued(node.id);
-      const available = canResearch(node);
+      const queued      = isQueued(node.id);
+      const available   = canResearch(node);
       const sel = selectedId === node.id;
-      const t = effTime(node);
+      const t   = effTime(node);
 
       const fill   = unlocked ? '#0d1f0d' : researching ? '#1a1a0a' : available||queued ? '#151520' : '#0a0a0a';
       const stroke = unlocked ? '#00c853' : researching ? '#ffaa00' : available||queued ? color : node.locked ? '#222' : '#333';
-      const tclr   = unlocked ? '#00c853' : researching ? '#ffaa00' : available ? '#ccc'  : node.locked ? '#333' : '#555';
+      const tclr   = unlocked ? '#00c853' : researching ? '#ffaa00' : available ? '#ccc' : node.locked ? '#333' : '#555';
 
       nodes += `
         <g class="kn-node" data-id="${node.id}" style="cursor:${node.locked?'default':'pointer'}">
@@ -214,7 +200,6 @@ const KnowledgePage = (() => {
     </svg>`;
   }
 
-  // ── Detail panel ──
   function renderDetail() {
     const s = _s();
     if (!selectedId) return `
@@ -225,14 +210,14 @@ const KnowledgePage = (() => {
     const node = selectedId === 'root' ? KN_ROOT : KnowledgeTree.getNode(selectedId);
     if (!node) return '';
 
-    const unlocked = isUnlocked(selectedId);
+    const unlocked    = isUnlocked(selectedId);
     const researching = isResearching(selectedId);
-    const queued = isQueued(selectedId);
-    const available = selectedId === 'root' ? !unlocked && !researching : canResearch(node);
-    const cost = effCost(node);
-    const time = effTime(node);
+    const queued      = isQueued(selectedId);
+    const available   = selectedId === 'root' ? !unlocked && !researching : canResearch(node);
+    const cost     = effCost(node);
+    const time     = effTime(node);
     const timeLeft = researching ? Math.max(0, Math.ceil((s.researching.endsAt - Date.now())/1000)) : 0;
-    const qIdx = s.queue.indexOf(selectedId);
+    const qIdx     = s.queue.indexOf(selectedId);
 
     return `
       <div class="kn-detail">
@@ -285,11 +270,10 @@ const KnowledgePage = (() => {
     return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'p';
   }
 
-  // ── Render ──
   function renderHTML() {
     const s = _s();
     const total = KnowledgeTree.getNodes().filter(n=>!n.locked).length + 1;
-    const cur = s.unlocked.length;
+    const cur   = s.unlocked.length;
     const rNode = s.researching ? KnowledgeTree.getNode(s.researching.id) : null;
 
     return `
@@ -306,12 +290,10 @@ const KnowledgePage = (() => {
       </div>`;
   }
 
-  // ── Events ──
   function bindEvents() {
     const wrap = document.getElementById('kn-map-wrap');
     const svg  = document.getElementById('kn-svg');
 
-    // Mouse pan
     wrap?.addEventListener('mousedown', e => {
       if (e.target.closest('.kn-node')) return;
       dragging = true;
@@ -327,7 +309,6 @@ const KnowledgePage = (() => {
     });
     window.addEventListener('mouseup', () => { dragging = false; if(svg) svg.style.cursor='grab'; });
 
-    // Touch pan
     let ts = null;
     wrap?.addEventListener('touchstart', e => {
       if (e.touches.length===1) ts = {x:e.touches[0].clientX, y:e.touches[0].clientY, px:panX, py:panY};
@@ -340,7 +321,6 @@ const KnowledgePage = (() => {
       svg?.setAttribute('viewBox', `${-panX} ${-panY} 800 700`);
     }, { passive:false });
 
-    // Node click
     document.querySelectorAll('.kn-node').forEach(el => {
       el.addEventListener('click', () => {
         selectedId = el.dataset.id;
@@ -355,7 +335,7 @@ const KnowledgePage = (() => {
 
   function _bindPanel() {
     document.querySelector('.kn-btn-research')?.addEventListener('click', function() {
-      const id = this.dataset.id;
+      const id   = this.dataset.id;
       const node = id === 'root' ? KN_ROOT : KnowledgeTree.getNode(id);
       const cost = effCost(node), time = effTime(node);
       if (STATE.balance < cost) return;
@@ -374,7 +354,7 @@ const KnowledgePage = (() => {
     });
 
     document.querySelector('.kn-btn-queue')?.addEventListener('click', function() {
-      const id = this.dataset.id;
+      const id   = this.dataset.id;
       const node = KnowledgeTree.getNode(id);
       const cost = effCost(node);
       if (STATE.balance < cost) return;
@@ -386,8 +366,8 @@ const KnowledgePage = (() => {
     });
 
     document.querySelector('.kn-btn-cancel')?.addEventListener('click', function() {
-      const id = this.dataset.id;
-      const s = _s();
+      const id  = this.dataset.id;
+      const s   = _s();
       const node = KnowledgeTree.getNode(id);
       const idx = s.queue.indexOf(id);
       if (idx >= 0) {
@@ -407,21 +387,21 @@ const KnowledgePage = (() => {
       if (!s.researching) { clearInterval(researchTimer); return; }
       const left = Math.max(0, s.researching.endsAt - Date.now());
 
-      const cd = document.getElementById('kn-countdown');
+      const cd    = document.getElementById('kn-countdown');
       const topCd = document.getElementById('kn-top-cd');
-      if (cd) cd.textContent = _fmt(Math.ceil(left/1000));
+      if (cd)    cd.textContent    = _fmt(Math.ceil(left/1000));
       if (topCd) topCd.textContent = ' · ' + _fmt(Math.ceil(left/1000));
 
       if (left <= 0) {
-        const id = s.researching.id;
-        const node = id==='root' ? KN_ROOT : KnowledgeTree.getNode(id);
+        const id   = s.researching.id;
+        const node = id === 'root' ? KN_ROOT : KnowledgeTree.getNode(id);
         s.unlocked.push(id);
         s.researching = null;
         UI.toast(`✅ ${node?.label} hoàn tất!`, 'success');
         if (s.queue.length > 0) {
-          const nextId = s.queue.shift();
+          const nextId   = s.queue.shift();
           const nextNode = KnowledgeTree.getNode(nextId);
-          s.researching = { id: nextId, endsAt: Date.now() + effTime(nextNode)*1000 };
+          s.researching  = { id: nextId, endsAt: Date.now() + effTime(nextNode)*1000 };
           UI.toast(`🔬 Tiếp theo: ${nextNode?.label}`, 'success');
         }
         clearInterval(researchTimer);
@@ -443,9 +423,8 @@ const KnowledgePage = (() => {
     await KnowledgeTree.autoLoadNodes();
     _rerender();
   }
-  function tick() { /* passive handled by timer */ }
+  function tick() {}
 
-  // Buff getters
   function getBuff(key) {
     const m = {
       social_follower:   isUnlocked('IS1') ? 0.10 : 0,
